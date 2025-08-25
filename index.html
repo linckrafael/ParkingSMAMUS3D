@@ -114,15 +114,37 @@
 
   scene = new BABYLON.Scene(engine);
 
-  // --- Câmera universal para desktop e mobile ---
-  camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0,12,-28), scene);
+  // --- Câmera universal melhorada ---
+  camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(68, 80, -15), scene);
+camera.rotation.x = Math.PI / 5; // inclinação (45° para baixo)
+camera.rotation.y = 10;           // direção no eixo Y
   camera.attachControl(canvas,true);
-  camera.keysUp.push(87); camera.keysDown.push(83); camera.keysLeft.push(65); camera.keysRight.push(68);
+
+  // Teclas de movimentação
+  camera.keysUp.push(87); camera.keysDown.push(83);
+  camera.keysLeft.push(65); camera.keysRight.push(68);
   camera.speed = 15;
   camera.angularSensibility = 450;
   camera.inertia = 0.1;
+
+  // Scroll do mouse
   camera.inputs.addMouseWheel();
   camera.wheelPrecision = 50;
+
+  // Limite da altura da câmera
+  const MIN_Y = 1;
+  const MAX_Y = 100;
+  scene.registerBeforeRender(() => {
+    if (camera.position.y < MIN_Y) camera.position.y = MIN_Y;
+    if (camera.position.y > MAX_Y) camera.position.y = MAX_Y;
+  });
+
+  // Melhor mobilidade no mobile
+  camera.inputs.removeByType("FreeCameraTouchInput");
+  camera.inputs.add(new BABYLON.FreeCameraTouchInput());
+  camera.angularSensibility = 500;
+  camera.touchAngularSensibility = 2000;
+  camera.panningSensibility = 50;
 
   new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
 
@@ -143,7 +165,7 @@
 
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene);
 
-  // --- Funções utilitárias e manipulação de vagas (mesmo código anterior) ---
+  // --- Funções utilitárias, manipulação de vagas e Firebase ---  
   function getSizeOf(node){ const bv = node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
   function criarVagaContorno(pos){ 
       const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane",{width:VAGA_LARGURA,height:VAGA_COMPRIMENTO},scene); 
@@ -159,7 +181,6 @@
 
   function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); }
   function encontrarVagaPorMesh(mesh){ return vagas.find(v=>v.mesh===mesh); }
-
   function normalizarOrientacao(carroRoot){ 
       let {size}=getSizeOf(carroRoot); 
       const minAxis=(size.x<=size.y && size.x<=size.z)?'x':(size.y<=size.x && size.y<=size.z?'y':'z'); 
@@ -168,7 +189,6 @@
       ({size}=getSizeOf(carroRoot)); 
       if(size.x>size.z){ carroRoot.rotate(BABYLON.Axis.Y,-Math.PI/2); } 
   }
-
   function posicionarSobreVaga(carroRoot,vagaMesh){ 
       const {bv}=getSizeOf(carroRoot); 
       const minY=bv.min.y; 
@@ -176,7 +196,6 @@
       carroRoot.position.z=vagaMesh.position.z; 
       carroRoot.position.y=vagaMesh.position.y-minY+0.01; 
   }
-
   function escalarParaVaga(carroRoot){ 
       const oldRotY=carroRoot.rotation.y; carroRoot.rotation.y=0; 
       const {size}=getSizeOf(carroRoot); 
@@ -203,7 +222,6 @@
       return carroRoot; 
   }
 
-  // --- Firebase sincronização ---
   function atualizarFirebase(vaga, id){
       db.ref('vagas/'+id).set({
           x: vaga.mesh.position.x,
