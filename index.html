@@ -76,7 +76,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // --- Variáveis globais ---
   const canvas = document.getElementById("renderCanvas");
   const engine = new BABYLON.Engine(canvas, true);
   let scene, camera;
@@ -96,7 +95,6 @@
   const VAGA_ALTURA = 2.0;
   const MARGEM_ESCALA = 0.95;
 
-  // --- Funções login e interface ---
   function login(){
     const selected = document.getElementById("roleSelect").value;
     const pass = document.getElementById("userPass").value;
@@ -131,24 +129,15 @@
     document.getElementById("ocupadas").innerText = ocupadas;
   }
 
-  // --- BABYLON ---
   scene = new BABYLON.Scene(engine);
 
-  // --- Detectar mobile ---
+  // --- Câmera Desktop/Mobile ---
   function isMobile() {
     return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
   }
 
   if(isMobile()){
-    // --- ArcRotateCamera para mobile ---
-    camera = new BABYLON.ArcRotateCamera(
-        "camera",
-        -Math.PI/2,
-        Math.PI/3,
-        30,
-        new BABYLON.Vector3(0,0,0),
-        scene
-    );
+    camera = new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/3,30,new BABYLON.Vector3(0,0,0),scene);
     camera.attachControl(canvas,true);
     camera.lowerRadiusLimit = 10;
     camera.upperRadiusLimit = 100;
@@ -156,16 +145,13 @@
     camera.panningSensibility = 50;
     camera.angularSensibilityX = 500;
     camera.angularSensibilityY = 500;
-    if(camera.inputs.attached.pointers)
-      camera.inputs.attached.pointers.angularSensibility = 500;
   } else {
-    // --- UniversalCamera para desktop ---
     camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0,12,-28), scene);
     camera.attachControl(canvas,true);
-    camera.keysUp.push(87);    // W
-    camera.keysDown.push(83);  // S
-    camera.keysLeft.push(65);  // A
-    camera.keysRight.push(68); // D
+    camera.keysUp.push(87);
+    camera.keysDown.push(83);
+    camera.keysLeft.push(65);
+    camera.keysRight.push(68);
     camera.speed = 15;
     camera.angularSensibility = 450;
     camera.inertia = 0.1;
@@ -176,14 +162,12 @@
 
   new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
 
-  // --- Chão ---
   const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
   ground.position.y = -0.05;
   const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
   groundMat.diffuseColor = new BABYLON.Color3(0.4,0.4,0.4);
   ground.material = groundMat;
 
-  // --- Skybox ---
   const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:1000}, scene);
   const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
   skyboxMat.backFaceCulling = false;
@@ -195,7 +179,7 @@
 
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene);
 
-  // --- Funções utilitárias e manipulação de vagas/carros (mantidas) ---
+  // --- Funções utilitárias ---
   function getSizeOf(node){ const bv = node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
   function criarVagaContorno(pos){ 
       const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane",{width:VAGA_LARGURA,height:VAGA_COMPRIMENTO},scene); 
@@ -208,8 +192,10 @@
       plane.isPickable=true; 
       return plane; 
   }
+
   function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); }
   function encontrarVagaPorMesh(mesh){ return vagas.find(v=>v.mesh===mesh); }
+
   function normalizarOrientacao(carroRoot){ 
       let {size}=getSizeOf(carroRoot); 
       const minAxis=(size.x<=size.y && size.x<=size.z)?'x':(size.y<=size.x && size.y<=size.z?'y':'z'); 
@@ -218,6 +204,7 @@
       ({size}=getSizeOf(carroRoot)); 
       if(size.x>size.z){ carroRoot.rotate(BABYLON.Axis.Y,-Math.PI/2); } 
   }
+
   function posicionarSobreVaga(carroRoot,vagaMesh){ 
       const {bv}=getSizeOf(carroRoot); 
       const minY=bv.min.y; 
@@ -225,6 +212,7 @@
       carroRoot.position.z=vagaMesh.position.z; 
       carroRoot.position.y=vagaMesh.position.y-minY+0.01; 
   }
+
   function escalarParaVaga(carroRoot){ 
       const oldRotY=carroRoot.rotation.y; carroRoot.rotation.y=0; 
       const {size}=getSizeOf(carroRoot); 
@@ -235,6 +223,7 @@
       carroRoot.scaling.set(s,s,s); 
       carroRoot.rotation.y=oldRotY; 
   }
+
   async function carregarCarroNormalizado(vaga){ 
       const idx=Math.floor(Math.random()*CAR_MODELS.length); 
       const file=CAR_MODELS[idx]; 
@@ -328,6 +317,14 @@
           if(!vaga){
               const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,0.01,vData.z));
               novaMesh.rotation.y = vData.rotY;
+
+              // Atualizar cor da vaga de acordo com ocupação
+              if(vData.ocupada && novaMesh.material){
+                  novaMesh.material.diffuseColor = new BABYLON.Color3(1,0,0); // vermelho
+              } else if(novaMesh.material){
+                  novaMesh.material.diffuseColor = new BABYLON.Color3(0,1,0); // verde
+              }
+
               vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id };
               vagas.push(vaga);
               if(vaga.ocupada) ocuparVagaFirebase(vaga);
@@ -336,6 +333,13 @@
               vaga.mesh.position.z = vData.z;
               vaga.mesh.rotation.y = vData.rotY;
               vaga.ocupada = vData.ocupada;
+
+              if(vaga.ocupada && vaga.mesh.material){
+                  vaga.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
+              } else if(vaga.mesh.material){
+                  vaga.mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
+              }
+
               if(vaga.ocupada && !vaga.carro) ocuparVagaFirebase(vaga);
               if(!vaga.ocupada && vaga.carro){ vaga.carro.dispose(); vaga.carro=null; }
           }
@@ -350,29 +354,17 @@
       if(moverAtivo&&vagaSelecionada){
           vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
           if(vagaSelecionada.carro){posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);}
-          moverAtivo=false;
           atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
-          return;
-      }
-
-      const isShift=pointerInfo.event&&pointerInfo.event.shiftKey;
-      const vaga=encontrarVagaPorMesh(pick.pickedMesh);
-      if(vaga&&role!=="viewer"){selecionarVaga(vaga); return;}
-
-      if(role==="admin"&&isShift){
-          const id = "vaga_" + Date.now();
-          const novaMesh=criarVagaContorno(pick.pickedPoint);
-          const vagaObj={mesh:novaMesh,ocupada:false,carro:null,id};
-          vagas.push(vagaObj);
-          selecionarVaga(vagaObj);
-          atualizarFirebase(vagaObj,id);
-          atualizarPainel();
+          moverAtivo=false;
+      } else {
+          const pickedMesh=pick.pickedMesh;
+          const vaga=encontrarVagaPorMesh(pickedMesh);
+          if(vaga) selecionarVaga(vaga);
       }
   });
 
-  window.addEventListener("keydown",(ev)=>{if(ev.key==="Delete"||ev.key==="Del"){deletarVaga();}});
-  engine.runRenderLoop(()=>scene.render());
-  window.addEventListener("resize",()=>engine.resize());
+  engine.runRenderLoop(()=>{ scene.render(); });
+  window.addEventListener("resize",()=>{engine.resize();});
 </script>
 </body>
 </html>
