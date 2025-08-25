@@ -83,25 +83,36 @@
   let vagas = [];
   let vagaSelecionada = null;
   let moverAtivo = false;
+
   let role = "viewer";
   const PASSWORDS = { operator: "op123", admin: "admin123" };
+
   const PARKING_MODEL_FILE = "modelo.glb"; 
   const CAR_BASE_URL = "https://linckrafael.github.io/cars3D/";
   const CAR_MODELS = ["car1.glb","car2.glb","car3.glb","car5.glb","car6.glb","car7.glb","car8.glb","car9.glb","car10.glb","car12.glb","car13.glb","car14.glb","car15.glb","car19.glb"];
+
   const VAGA_LARGURA = 4.0;
   const VAGA_COMPRIMENTO = 8.0;
   const VAGA_ALTURA = 2.0;
   const MARGEM_ESCALA = 0.95;
 
-  // --- Funções login ---
+  // --- Funções login e interface ---
   function login(){
     const selected = document.getElementById("roleSelect").value;
     const pass = document.getElementById("userPass").value;
-    if(selected === "viewer"){ role = "viewer"; alert("Modo Visualizador"); }
-    else if(pass === PASSWORDS[selected]){ role = selected; alert("Modo " + (role === "admin" ? "Administrador" : "Operador") + " Ativado"); }
-    else{ alert("Senha incorreta"); return; }
+    if(selected === "viewer"){
+      role = "viewer";
+      alert("Modo Visualizador");
+    } else if(pass === PASSWORDS[selected]){
+      role = selected;
+      alert("Modo " + (role === "admin" ? "Administrador" : "Operador") + " Ativado");
+    } else {
+      alert("Senha incorreta");
+      return;
+    }
     atualizarInterface();
   }
+
   function atualizarInterface(){
     document.querySelectorAll("#vagaPanel button").forEach(btn => btn.style.display = "none");
     if(role === "operator"){
@@ -122,22 +133,61 @@
 
   // --- BABYLON ---
   scene = new BABYLON.Scene(engine);
-  camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0, 12, -28), scene);
-  camera.attachControl(canvas, true);
-  camera.keysUp.push(87); camera.keysDown.push(83); camera.keysLeft.push(65); camera.keysRight.push(68);
-  camera.speed = 15; camera.angularSensibility = 450; camera.inertia = 0.1;
-  camera.inputs.addMouseWheel(); camera.wheelPrecision = 50; camera.rotation.y = Math.PI;
+
+  // --- Detectar mobile ---
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  }
+
+  if(isMobile()){
+    // --- ArcRotateCamera para mobile ---
+    camera = new BABYLON.ArcRotateCamera(
+        "camera",
+        -Math.PI/2,
+        Math.PI/3,
+        30,
+        new BABYLON.Vector3(0,0,0),
+        scene
+    );
+    camera.attachControl(canvas,true);
+    camera.lowerRadiusLimit = 10;
+    camera.upperRadiusLimit = 100;
+    camera.wheelDeltaPercentage = 0.01;
+    camera.panningSensibility = 50;
+    camera.angularSensibilityX = 500;
+    camera.angularSensibilityY = 500;
+    if(camera.inputs.attached.pointers)
+      camera.inputs.attached.pointers.angularSensibility = 500;
+  } else {
+    // --- UniversalCamera para desktop ---
+    camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0,12,-28), scene);
+    camera.attachControl(canvas,true);
+    camera.keysUp.push(87);    // W
+    camera.keysDown.push(83);  // S
+    camera.keysLeft.push(65);  // A
+    camera.keysRight.push(68); // D
+    camera.speed = 15;
+    camera.angularSensibility = 450;
+    camera.inertia = 0.1;
+    camera.inputs.addMouseWheel();
+    camera.wheelPrecision = 50;
+    camera.rotation.y = Math.PI;
+  }
 
   new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
+
+  // --- Chão ---
   const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
   ground.position.y = -0.05;
   const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
   groundMat.diffuseColor = new BABYLON.Color3(0.4,0.4,0.4);
   ground.material = groundMat;
 
+  // --- Skybox ---
   const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:1000}, scene);
   const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMat.backFaceCulling = false; skyboxMat.diffuseColor = new BABYLON.Color3(0,0,0);
+  skyboxMat.backFaceCulling = false;
+  skyboxMat.diffuseColor = new BABYLON.Color3(0,0,0);
   skyboxMat.specularColor = new BABYLON.Color3(0,0,0);
   skyboxMat.reflectionTexture = new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/skybox", scene);
   skyboxMat.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
@@ -145,13 +195,17 @@
 
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene);
 
-  // --- Utilitários ---
+  // --- Funções utilitárias e manipulação de vagas/carros (mantidas) ---
   function getSizeOf(node){ const bv = node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
   function criarVagaContorno(pos){ 
       const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane",{width:VAGA_LARGURA,height:VAGA_COMPRIMENTO},scene); 
-      plane.rotation.x=Math.PI/2; plane.position=pos.clone().add(new BABYLON.Vector3(0,0.01,0)); 
+      plane.rotation.x=Math.PI/2; 
+      plane.position=pos.clone().add(new BABYLON.Vector3(0,0.01,0)); 
       const mat=new BABYLON.StandardMaterial("vagaMat",scene); 
-      mat.diffuseColor=new BABYLON.Color3(0,1,0); mat.alpha=0.3; plane.material=mat; plane.isPickable=true; 
+      mat.diffuseColor=new BABYLON.Color3(0,1,0); 
+      mat.alpha=0.3; 
+      plane.material=mat; 
+      plane.isPickable=true; 
       return plane; 
   }
   function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); }
@@ -174,56 +228,70 @@
   function escalarParaVaga(carroRoot){ 
       const oldRotY=carroRoot.rotation.y; carroRoot.rotation.y=0; 
       const {size}=getSizeOf(carroRoot); 
-      const sx=VAGA_LARGURA/size.x; const sy=VAGA_ALTURA/size.y; const sz=VAGA_COMPRIMENTO/size.z; 
-      const s=Math.min(sx,sy,sz)*MARGEM_ESCALA; carroRoot.scaling.set(s,s,s); carroRoot.rotation.y=oldRotY; 
+      const sx=VAGA_LARGURA/size.x; 
+      const sy=VAGA_ALTURA/size.y; 
+      const sz=VAGA_COMPRIMENTO/size.z; 
+      const s=Math.min(sx,sy,sz)*MARGEM_ESCALA; 
+      carroRoot.scaling.set(s,s,s); 
+      carroRoot.rotation.y=oldRotY; 
   }
-
-  async function carregarCarroNormalizado(modelIndex, vaga){ 
-      const file=CAR_MODELS[modelIndex]; 
+  async function carregarCarroNormalizado(vaga){ 
+      const idx=Math.floor(Math.random()*CAR_MODELS.length); 
+      const file=CAR_MODELS[idx]; 
       const container=await BABYLON.SceneLoader.LoadAssetContainerAsync(CAR_BASE_URL,file,scene); 
       const carroRoot=new BABYLON.TransformNode("carroRoot",scene); 
       container.meshes.forEach(m=>{if(m.parent==null)m.parent=carroRoot;}); 
       container.addAllToScene(); 
-      carroRoot.rotationQuaternion=null; normalizarOrientacao(carroRoot); escalarParaVaga(carroRoot); 
-      carroRoot.rotation.y=vaga.mesh.rotation.y; posicionarSobreVaga(carroRoot,vaga.mesh); 
+      carroRoot.rotationQuaternion=null; 
+      normalizarOrientacao(carroRoot); 
+      escalarParaVaga(carroRoot); 
+      carroRoot.rotation.y=vaga.mesh.rotation.y; 
+      posicionarSobreVaga(carroRoot,vaga.mesh); 
       return carroRoot; 
   }
 
-  // --- Firebase sincronização ---
-  function atualizarFirebase(vaga){
-      db.ref('vagas/'+vaga.id).set({
+  function atualizarFirebase(vaga, id){
+      db.ref('vagas/'+id).set({
           x: vaga.mesh.position.x,
           z: vaga.mesh.position.z,
           rotY: vaga.mesh.rotation.y,
-          ocupada: vaga.ocupada,
-          carIndex: vaga.carIndex!==undefined?vaga.carIndex:null
+          ocupada: vaga.ocupada
       });
-      // Atualiza cor do contorno
-      if(vaga.mesh.material) vaga.mesh.material.diffuseColor = vaga.ocupada?new BABYLON.Color3(1,0,0):new BABYLON.Color3(0,1,0);
   }
 
-  async function ocuparVagaFirebase(vaga, carIndex){
-      if(vaga.carro) return;
-      vaga.carIndex = carIndex!==undefined?carIndex:vaga.carIndex!==undefined?vaga.carIndex:Math.floor(Math.random()*CAR_MODELS.length);
-      const carro = await carregarCarroNormalizado(vaga.carIndex, vaga);
-      vaga.carro = carro;
-      vaga.ocupada = true;
-      atualizarFirebase(vaga);
+  async function ocuparVagaFirebase(vaga){
+      if(vaga.ocupada){
+          if(vaga.carro) return;
+          try{
+              const carro = await carregarCarroNormalizado(vaga);
+              vaga.carro = carro;
+          }catch(e){ console.error(e); }
+      }
   }
 
-  // --- Manipulação vagas ---
   async function ocuparVaga(){
       if(role==="viewer"||!vagaSelecionada||vagaSelecionada.ocupada)return;
-      const carIndex = Math.floor(Math.random()*CAR_MODELS.length);
-      await ocuparVagaFirebase(vagaSelecionada, carIndex);
+      vagaSelecionada.ocupada=true;
+      if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(1,0,0);
+      if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
+      try{
+          const carro=await carregarCarroNormalizado(vagaSelecionada);
+          vagaSelecionada.carro=carro;
+          atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+      }catch(e){
+          console.error("Erro ao carregar carro:",e);
+          vagaSelecionada.ocupada=false;
+          if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
+      }
       atualizarPainel();
   }
 
   function liberarVaga(){
       if(role==="viewer"||!vagaSelecionada)return;
+      vagaSelecionada.ocupada=false;
+      if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
       if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
-      vagaSelecionada.ocupada=false; vagaSelecionada.carIndex=null;
-      atualizarFirebase(vagaSelecionada);
+      atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
       atualizarPainel();
   }
 
@@ -231,8 +299,11 @@
       if(role!=="admin"||!vagaSelecionada)return;
       const rad=BABYLON.Tools.ToRadians(angulo);
       vagaSelecionada.mesh.rotation.y+=rad;
-      if(vagaSelecionada.carro){vagaSelecionada.carro.rotation.y+=rad; posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);}
-      atualizarFirebase(vagaSelecionada);
+      if(vagaSelecionada.carro){
+          vagaSelecionada.carro.rotation.y+=rad;
+          posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
+      }
+      atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
   }
 
   function ativarMover(){ if(role==="admin"&&vagaSelecionada)moverAtivo=true; }
@@ -248,40 +319,39 @@
       atualizarPainel();
   }
 
-  // --- Listener Firebase ---
   db.ref('vagas').on('value', snapshot => {
       const data = snapshot.val();
       if(!data) return;
-      Object.keys(data).forEach(id=>{
+      Object.keys(data).forEach(id => {
           const vData = data[id];
           let vaga = vagas.find(v=>v.id===id);
           if(!vaga){
               const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,0.01,vData.z));
               novaMesh.rotation.y = vData.rotY;
-              vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id, carIndex: vData.carIndex };
+              vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id };
               vagas.push(vaga);
-              if(vaga.ocupada) ocuparVagaFirebase(vaga, vaga.carIndex);
+              if(vaga.ocupada) ocuparVagaFirebase(vaga);
           } else {
-              vaga.mesh.position.x = vData.x; vaga.mesh.position.z = vData.z; vaga.mesh.rotation.y = vData.rotY;
-              vaga.ocupada = vData.ocupada; vaga.carIndex = vData.carIndex;
-              if(vaga.carro) vaga.carro.dispose(), vaga.carro=null;
-              if(vaga.ocupada) ocuparVagaFirebase(vaga, vaga.carIndex);
-              // Atualiza cor
-              if(vaga.mesh.material) vaga.mesh.material.diffuseColor = vaga.ocupada?new BABYLON.Color3(1,0,0):new BABYLON.Color3(0,1,0);
+              vaga.mesh.position.x = vData.x;
+              vaga.mesh.position.z = vData.z;
+              vaga.mesh.rotation.y = vData.rotY;
+              vaga.ocupada = vData.ocupada;
+              if(vaga.ocupada && !vaga.carro) ocuparVagaFirebase(vaga);
+              if(!vaga.ocupada && vaga.carro){ vaga.carro.dispose(); vaga.carro=null; }
           }
       });
       atualizarPainel();
   });
 
-  // --- Interação mouse ---
   scene.onPointerObservable.add(async(pointerInfo)=>{
       if(pointerInfo.type!==BABYLON.PointerEventTypes.POINTERPICK)return;
       const pick=pointerInfo.pickInfo; if(!pick.hit)return;
 
       if(moverAtivo&&vagaSelecionada){
           vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
-          if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
-          moverAtivo=false; atualizarFirebase(vagaSelecionada);
+          if(vagaSelecionada.carro){posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);}
+          moverAtivo=false;
+          atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
           return;
       }
 
@@ -292,10 +362,10 @@
       if(role==="admin"&&isShift){
           const id = "vaga_" + Date.now();
           const novaMesh=criarVagaContorno(pick.pickedPoint);
-          const vagaObj={mesh:novaMesh,ocupada:false,carro:null,id,carIndex:null};
+          const vagaObj={mesh:novaMesh,ocupada:false,carro:null,id};
           vagas.push(vagaObj);
           selecionarVaga(vagaObj);
-          atualizarFirebase(vagaObj);
+          atualizarFirebase(vagaObj,id);
           atualizarPainel();
       }
   });
