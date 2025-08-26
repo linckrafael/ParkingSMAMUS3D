@@ -26,7 +26,7 @@
     #mobileControls button { border: none; border-radius: 12px; background: rgba(0,0,0,0.6); color: #fff; font-size: 18px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
     #mobileControls button:active { transform: scale(0.98); }
 
-    @media (max-width: 768px) { /* mostrar apenas em telas menores / mobile */
+    @media (max-width: 768px) { 
       #mobileControls { display: flex; }
     }
   </style>
@@ -36,7 +36,7 @@
 
 <div id="adminPanel">
   <div>Vagas livres: <span id="livres">0</span> | Ocupadas: <span id="ocupadas">0</span></div>
-  <div class="hint">Admin: clique com <b>botão direito</b> no chão para criar uma vaga</div>
+  <div class="hint">Admin: clique com <b>botão direito</b> em qualquer ponto para criar uma vaga</div>
 </div>
 
 <div id="loginPanel">
@@ -145,65 +145,44 @@
 
   scene = new BABYLON.Scene(engine);
 
-  // --- Câmera universal melhorada ---
+  // Câmera universal
   camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(68, 80, -15), scene);
-  camera.rotation.x = Math.PI / 5; // inclinação
-  camera.rotation.y = 10;           // direção no eixo Y
+  camera.rotation.x = Math.PI / 5;
+  camera.rotation.y = 10;
   camera.attachControl(canvas,true);
-
-  // Teclas de movimentação
   camera.keysUp.push(87); camera.keysDown.push(83);
   camera.keysLeft.push(65); camera.keysRight.push(68);
   camera.speed = 15;
   camera.angularSensibility = 450;
   camera.inertia = 0.1;
-
-  // Scroll do mouse
   camera.inputs.addMouseWheel();
   camera.wheelPrecision = 50;
-
-  // Limite da altura da câmera
-  const MIN_Y = 1;
-  const MAX_Y = 100;
-  scene.registerBeforeRender(() => {
-    if (camera.position.y < MIN_Y) camera.position.y = MIN_Y;
-    if (camera.position.y > MAX_Y) camera.position.y = MAX_Y;
-  });
-
-  // Melhor mobilidade no mobile (e botões auxiliares)
+  const MIN_Y = 1, MAX_Y = 100;
+  scene.registerBeforeRender(()=>{ if(camera.position.y<MIN_Y)camera.position.y=MIN_Y; if(camera.position.y>MAX_Y)camera.position.y=MAX_Y; });
   camera.inputs.removeByType("FreeCameraTouchInput");
   camera.inputs.add(new BABYLON.FreeCameraTouchInput());
   camera.angularSensibility = 500;
   camera.touchAngularSensibility = 2000;
   camera.panningSensibility = 50;
 
-  // Helpers de movimento para botões mobile
-  const STEP = 5;      // passo de movimento
-  const ZOOM_STEP = 8; // passo de zoom
-  function moveRelative(forward, right){
-    // forward/right relativos à orientação da câmera, travando no plano XZ
-    const f = camera.getDirection(new BABYLON.Vector3(0,0,1));
-    f.y = 0; f.normalize();
-    const r = camera.getDirection(new BABYLON.Vector3(1,0,0));
-    r.y = 0; r.normalize();
-    const delta = f.scale(forward * STEP).add(r.scale(right * STEP));
-    camera.position.addInPlace(delta);
+  const STEP = 5;
+  const ZOOM_STEP = 8;
+  function moveRelative(forward,right){
+      const f=camera.getDirection(new BABYLON.Vector3(0,0,1)); f.y=0; f.normalize();
+      const r=camera.getDirection(new BABYLON.Vector3(1,0,0)); r.y=0; r.normalize();
+      camera.position.addInPlace(f.scale(forward*STEP).add(r.scale(right*STEP)));
   }
-  function zoomRelative(sign){
-    const f = camera.getDirection(new BABYLON.Vector3(0,0,1));
-    const delta = f.scale(sign * ZOOM_STEP);
-    camera.position.addInPlace(delta);
-  }
+  function zoomRelative(sign){ const f=camera.getDirection(new BABYLON.Vector3(0,0,1)); camera.position.addInPlace(f.scale(sign*ZOOM_STEP)); }
   function attachHold(btn, action){
-    if(!btn) return;
-    let interval = null;
-    const start = (e)=>{ e.preventDefault(); action(); interval = setInterval(action, 100); };
-    const end = ()=>{ if(interval){ clearInterval(interval); interval = null; } };
-    btn.addEventListener('touchstart', start, {passive:false});
-    btn.addEventListener('mousedown', start);
-    window.addEventListener('touchend', end);
-    window.addEventListener('mouseup', end);
-    window.addEventListener('touchcancel', end);
+      if(!btn) return;
+      let interval=null;
+      const start=(e)=>{ e.preventDefault(); action(); interval=setInterval(action,100); };
+      const end=()=>{ if(interval){ clearInterval(interval); interval=null; } };
+      btn.addEventListener('touchstart',start,{passive:false});
+      btn.addEventListener('mousedown',start);
+      window.addEventListener('touchend',end);
+      window.addEventListener('mouseup',end);
+      window.addEventListener('touchcancel',end);
   }
   attachHold(document.getElementById('btnUp'), ()=>moveRelative(1,0));
   attachHold(document.getElementById('btnDown'), ()=>moveRelative(-1,0));
@@ -212,42 +191,34 @@
   attachHold(document.getElementById('btnZoomIn'), ()=>zoomRelative(1));
   attachHold(document.getElementById('btnZoomOut'), ()=>zoomRelative(-1));
 
-  // Cena básica
   new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
-
-  const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
-  ground.position.y = -0.05;
-  ground.isPickable = true;
+  const ground = BABYLON.MeshBuilder.CreateGround("ground",{width:1000,height:1000},scene);
+  ground.position.y=-0.05;
+  ground.isPickable=true;
   const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
   groundMat.diffuseColor = new BABYLON.Color3(0.4,0.4,0.4);
-  ground.material = groundMat;
+  ground.material=groundMat;
 
-  const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:1000}, scene);
-  skybox.isPickable = false;
-  const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMat.backFaceCulling = false;
-  skyboxMat.diffuseColor = new BABYLON.Color3(0,0,0);
-  skyboxMat.specularColor = new BABYLON.Color3(0,0,0);
-  skyboxMat.reflectionTexture = new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/skybox", scene);
-  skyboxMat.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-  skybox.material = skyboxMat;
+  const skybox=BABYLON.MeshBuilder.CreateBox("skyBox",{size:1000},scene);
+  skybox.isPickable=false;
+  const skyboxMat=new BABYLON.StandardMaterial("skyBoxMat",scene);
+  skyboxMat.backFaceCulling=false;
+  skyboxMat.diffuseColor=new BABYLON.Color3(0,0,0);
+  skyboxMat.specularColor=new BABYLON.Color3(0,0,0);
+  skyboxMat.reflectionTexture=new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/skybox",scene);
+  skyboxMat.reflectionTexture.coordinatesMode=BABYLON.Texture.SKYBOX_MODE;
+  skybox.material=skyboxMat;
 
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene);
 
-  // --- Utilitários / Vagas / Firebase ---  
-  function getSizeOf(node){ const bv = node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
+  // --- Funções utilitárias (vagas, carros, firebase) ---
+  function getSizeOf(node){ const bv=node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
   function criarVagaContorno(pos){ 
       const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane",{width:VAGA_LARGURA,height:VAGA_COMPRIMENTO},scene); 
-      plane.rotation.x=Math.PI/2; 
-      plane.position=pos.clone().add(new BABYLON.Vector3(0,0.01,0)); 
-      const mat=new BABYLON.StandardMaterial("vagaMat",scene); 
-      mat.diffuseColor=new BABYLON.Color3(0,1,0); 
-      mat.alpha=0.3; 
-      plane.material=mat; 
-      plane.isPickable=true; 
+      plane.rotation.x=Math.PI/2; plane.position=pos.clone().add(new BABYLON.Vector3(0,0.01,0)); 
+      const mat=new BABYLON.StandardMaterial("vagaMat",scene); mat.diffuseColor=new BABYLON.Color3(0,1,0); mat.alpha=0.3; plane.material=mat; plane.isPickable=true; 
       return plane; 
   }
-
   function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); }
   function encontrarVagaPorMesh(mesh){ return vagas.find(v=>v.mesh===mesh); }
   function normalizarOrientacao(carroRoot){ 
@@ -293,6 +264,7 @@
   function atualizarFirebase(vaga, id){
       db.ref('vagas/'+id).set({
           x: vaga.mesh.position.x,
+          y: vaga.mesh.position.y,
           z: vaga.mesh.position.z,
           rotY: vaga.mesh.rotation.y,
           ocupada: vaga.ocupada,
@@ -302,9 +274,9 @@
 
   async function ocuparVagaFirebase(vaga){
       if(!vaga.ocupada) return;
-      if(vaga.carro) return; // já carregado
+      if(vaga.carro) return; 
       try{
-          if(!vaga.carModel){ // compatibilidade com dados antigos
+          if(!vaga.carModel){
               vaga.carModel = CAR_MODELS[Math.floor(Math.random()*CAR_MODELS.length)];
               db.ref('vagas/'+vaga.id+'/carModel').set(vaga.carModel);
           }
@@ -368,7 +340,6 @@
       atualizarPainel();
   }
 
-  // Sincronização Firebase → Cena
   db.ref('vagas').on('value', snapshot => {
       const data = snapshot.val();
       if(!data) return;
@@ -376,7 +347,7 @@
           const vData = data[id];
           let vaga = vagas.find(v=>v.id===id);
           if(!vaga){
-              const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,0.01,vData.z));
+              const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,vData.y,vData.z));
               novaMesh.rotation.y = vData.rotY;
               if(vData.ocupada && novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
               else if(novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
@@ -385,6 +356,7 @@
               if(vaga.ocupada) ocuparVagaFirebase(vaga);
           } else {
               vaga.mesh.position.x = vData.x;
+              vaga.mesh.position.y = vData.y;
               vaga.mesh.position.z = vData.z;
               vaga.mesh.rotation.y = vData.rotY;
               vaga.ocupada = vData.ocupada;
@@ -398,40 +370,36 @@
       atualizarPainel();
   });
 
-  // Impedir menu de contexto e permitir criação com botão direito
   canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
 
-  // Interações de clique
   scene.onPointerObservable.add(async (pointerInfo)=>{
       if(pointerInfo.type!==BABYLON.PointerEventTypes.POINTERPICK)return;
       const pick=pointerInfo.pickInfo; if(!pick.hit)return;
       const evt = pointerInfo.event || {};
 
-      // ADMIN → Criar vaga com botão direito
+      // ADMIN → Criar vaga com botão direito em qualquer ponto
       if(role==='admin' && evt.button===2){
-          const pos = pick.pickedPoint.clone();
-          pos.y = 0.01;
+          const pos = pick.pickedPoint.clone(); pos.y+=0.01;
           const mesh = criarVagaContorno(pos);
           mesh.rotation.y = 0;
           if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
           const ref = db.ref('vagas').push();
           const id = ref.key;
-          const vaga = { mesh, ocupada: false, carro: null, id, carModel: null };
+          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null };
           vagas.push(vaga);
-          await ref.set({ x: pos.x, z: pos.z, rotY: 0, ocupada: false, carModel: null });
+          await ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null });
           selecionarVaga(vaga);
           atualizarPainel();
-          return; // não processa seleção normal
+          return;
       }
 
-      // Mover vaga ativa
+      // Movimentação ou seleção de vaga
       if(moverAtivo && vagaSelecionada){
           vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
           if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
           atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
           moverAtivo=false;
       } else {
-          // Seleção de vaga
           const pickedMesh = pick.pickedMesh;
           const vaga = encontrarVagaPorMesh(pickedMesh);
           if(vaga) selecionarVaga(vaga);
