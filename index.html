@@ -25,10 +25,10 @@
     #mobileControls .zoom { display: grid; grid-auto-rows: 50px; gap: 8px; margin-left: 8px; }
     #mobileControls button { border: none; border-radius: 12px; background: rgba(0,0,0,0.6); color: #fff; font-size: 18px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
     #mobileControls button:active { transform: scale(0.98); }
-
-    @media (max-width: 768px) { 
-      #mobileControls { display: flex; }
-    }
+   @media (max-width: 1024px) { 
+  #mobileControls { display: flex !important; }
+}
+    
   </style>
 </head>
 <body>
@@ -159,11 +159,10 @@
   camera.wheelPrecision = 50;
   const MIN_Y = 1, MAX_Y = 100;
   scene.registerBeforeRender(()=>{ if(camera.position.y<MIN_Y)camera.position.y=MIN_Y; if(camera.position.y>MAX_Y)camera.position.y=MAX_Y; });
-  camera.inputs.removeByType("FreeCameraTouchInput");
-  camera.inputs.add(new BABYLON.FreeCameraTouchInput());
-  camera.angularSensibility = 500;
-  camera.touchAngularSensibility = 2000;
-  camera.panningSensibility = 50;
+  // Ajustes para toque mobile
+camera.angularSensibility = 3000;   // mais suave no toque
+camera.panningSensibility = 80;     // melhora arrasto no touch
+
 
   const STEP = 5;
   const ZOOM_STEP = 8;
