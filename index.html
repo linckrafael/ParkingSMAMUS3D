@@ -197,33 +197,32 @@
     return cam;
   }
 
-  function createMobileCamera(){
-    // ArcRotate com gestos nativos: pinça = zoom, arrastar = girar, dois dedos = pan
-    const target = new BABYLON.Vector3(68, 80, -15);
-    const alpha = Math.PI * 1.2;
-    const beta  = Math.PI / 5; // inclinação olhando para baixo
-    const radius = 120;
-    const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
-    cam.attachControl(canvas, true);
+function createMobileCamera(){
+  // mesma posição inicial do desktop: (68, 80, -15)
+  const target = new BABYLON.Vector3(68, 0, -15);
 
-    // Gestos
-    cam.useNaturalPinchZoom = true;          // zoom mais intuitivo
-    cam.pinchDeltaPercentage = 0.01;         // sensibilidade do pinch
-    cam.panningSensibility = 50;             // dois dedos = pan
-    cam.angularSensibilityTouch = 2000;      // suaviza giro no toque
+  // converte posição desejada para parâmetros da ArcRotateCamera
+  const initialPos = new BABYLON.Vector3(68, 80, -15);
+  const radius = BABYLON.Vector3.Distance(initialPos, target);
+  const alpha = Math.atan2(initialPos.z - target.z, initialPos.x - target.x);
+  const beta  = Math.acos((initialPos.y - target.y) / radius);
 
-    // Limites para não atravessar/virar demais
-    cam.lowerRadiusLimit = 20;
-    cam.upperRadiusLimit = 200;
-    cam.lowerBetaLimit   = 0.15;             // não ficar totalmente de lado
-    cam.upperBetaLimit   = Math.PI/2.05;     // não passar do horizonte
+  const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
+  cam.attachControl(canvas, true);
 
-    // Pequeno amortecimento
-    cam.inertia = 0.85;
-    cam.zoomToMouseLocation = false; // no mobile, segue o centro
+  cam.useNaturalPinchZoom = true;
+  cam.pinchDeltaPercentage = 0.01;
+  cam.panningSensibility = 50;
+  cam.angularSensibilityTouch = 2000;
+  cam.lowerRadiusLimit = 20;
+  cam.upperRadiusLimit = 200;
+  cam.lowerBetaLimit   = 0.15;
+  cam.upperBetaLimit   = Math.PI/2.05;
+  cam.inertia = 0.85;
 
-    return cam;
-  }
+  return cam;
+}
+
 
   camera = isMobile() ? createMobileCamera() : createDesktopCamera();
 
