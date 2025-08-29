@@ -197,34 +197,55 @@
     return cam;
   }
 
-function createMobileCamera(){
-  // mesma posição inicial do desktop: (68, 80, -15)
-  const target = new BABYLON.Vector3(68, 80, -15);
+  function createMobileCamera(){
+    // Queremos que a ArcRotateCamera inicie exatamente na mesma posição e orientação da câmera desktop.
+    // Para isso calculemos o "target" a partir da posição/rotação do desktop (mesmos valores usados em createDesktopCamera).
+    const desktopPos = new BABYLON.Vector3(68, 80, -15);
+    const desktopRotX = Math.PI / 5; // mesma rotação X usada no desktop
+    const desktopRotY = 10;         // mesma rotação Y usada no desktop
 
-  // converte posição desejada para parâmetros da ArcRotateCamera
-  const initialPos = new BABYLON.Vector3(68, 80, -15);
-  const radius = BABYLON.Vector3.Distance(initialPos, target);
-  const alpha = Math.atan2(initialPos.z - target.z, initialPos.x - target.x);
-  const beta  = Math.acos((initialPos.y - target.y) / radius);
+    // Criamos uma câmera temporária (não renderizada) para obter o vetor 'forward' a partir das rotações.
+    const tmp = new BABYLON.UniversalCamera("tmpCam", desktopPos.clone(), scene);
+    tmp.rotation.x = desktopRotX;
+    tmp.rotation.y = desktopRotY;
+    // vetor de direção para frente (normalizado)
+    const forward = tmp.getDirection(new BABYLON.Vector3(0,0,1));
 
-  const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
-  cam.attachControl(canvas, true);
+    // Distância na qual consideramos o ponto alvo na frente da câmera desktop.
+    // Ajuste targetDist se achar que o ponto de foco ficou muito perto/longe.
+    const targetDist = 100;
+    const target = desktopPos.add(forward.scale(targetDist));
 
-  cam.useNaturalPinchZoom = true;
-  cam.pinchDeltaPercentage = 0.01;
-  cam.panningSensibility = 50;
-  cam.angularSensibilityTouch = 2000;
-  cam.lowerRadiusLimit = 20;
-  cam.upperRadiusLimit = 200;
-  cam.lowerBetaLimit   = 0.15;
-  cam.upperBetaLimit   = Math.PI/2.05;
-  cam.inertia = 0.85;
+    // Calcula parâmetros alpha/beta/radius para a ArcRotate a partir da posição e do alvo.
+    const radius = BABYLON.Vector3.Distance(desktopPos, target);
+    const alpha = Math.atan2(desktopPos.z - target.z, desktopPos.x - target.x);
+    const beta  = Math.acos((desktopPos.y - target.y) / radius);
 
-  return cam;
+    // limpamos a câmera temporária
+    tmp.dispose();
+
+    const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
+    cam.attachControl(canvas, true);
+
+    // Gestos
+    cam.useNaturalPinchZoom = true;          // zoom mais intuitivo
+    cam.pinchDeltaPercentage = 0.01;         // sensibilidade do pinch
+    cam.panningSensibility = 50;             // dois dedos = pan
+    cam.angularSensibilityTouch = 2000;      // suaviza giro no toque
+
+    // Limites para não atravessar/virar demais
+    cam.lowerRadiusLimit = 20;
+    cam.upperRadiusLimit = 400;
+    cam.lowerBetaLimit   = 0.15;             // não ficar totalmente de lado
+    cam.upperBetaLimit   = Math.PI/2.05;     // não passar do horizonte
+
+    // Pequeno amortecimento
+    cam.inertia = 0.85;
+    cam.zoomToMouseLocation = false; // no mobile, segue o centro
+
+    return cam;
 }
-
-
-  camera = isMobile() ? createMobileCamera() : createDesktopCamera();
+camera = isMobile() ? createMobileCamera() : createDesktopCamera();
 
   // Utilitários de movimento/zoom (funcionam para ambas as câmeras)
   const STEP = 5;
