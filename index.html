@@ -199,9 +199,9 @@
 
   function createMobileCamera(){
     // ArcRotate com gestos nativos: pinça = zoom, arrastar = girar, dois dedos = pan
-    const target = new BABYLON.Vector3(68, 0, -15);
+    const target = new BABYLON.Vector3(68, 80, -15);
     const alpha = Math.PI * 1.2;
-    const beta  = Math.PI / 3; // inclinação olhando para baixo
+    const beta  = Math.PI / 5; // inclinação olhando para baixo
     const radius = 120;
     const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
     cam.attachControl(canvas, true);
