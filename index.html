@@ -19,51 +19,43 @@
     #vagaPanel button { margin: 3px; padding: 6px 10px; }
     .hint { font-size: 12px; opacity: 0.85; }
 
-    /* Controles mobile */
+    /* Controles mobile (mantidos, mas o principal agora é gesto de pinça e giro) */
     #mobileControls {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%); /* centraliza no meio da tela */
-  display: none;
-  gap: 20px;
-  z-index: 10;
-}
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 20px;
+      z-index: 10;
+    }
+    #mobileControls .pad {
+      display: grid;
+      grid-template-columns: 70px 70px 70px;
+      grid-template-rows: 70px 70px 70px;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+    }
+    #mobileControls .zoom {
+      display: grid;
+      grid-auto-rows: 70px;
+      gap: 12px;
+      margin-left: 12px;
+    }
+    #mobileControls button {
+      border: none;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      font-size: 28px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    #mobileControls button:active { transform: scale(0.95); }
 
-#mobileControls .pad {
-  display: grid;
-  grid-template-columns: 70px 70px 70px;  /* botões maiores */
-  grid-template-rows: 70px 70px 70px;
-  gap: 12px;
-  justify-content: center;
-  align-items: center;
-}
-
-#mobileControls .zoom {
-  display: grid;
-  grid-auto-rows: 70px;
-  gap: 12px;
-  margin-left: 12px;
-}
-
-#mobileControls button {
-  border: none;
-  border-radius: 20px;
-  background: rgba(0,0,0,0.3); /* mais transparente */
-  color: #fff;
-  font-size: 28px; /* ícones maiores */
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-}
-
-#mobileControls button:active {
-  transform: scale(0.95);
-}
-
-@media (max-width: 1024px) { 
-  #mobileControls { display: flex }
-}
-
-    
+    @media (max-width: 1024px) { 
+      #mobileControls { display: flex }
+    }
   </style>
 </head>
 <body>
@@ -95,7 +87,7 @@
   <button onclick="deletarVaga()">Deletar</button>
 </div>
 
-<!-- Controles Mobile (setas + zoom) -->
+<!-- Controles Mobile (opcionais) -->
 <div id="mobileControls">
   <div class="pad">
     <div></div>
@@ -180,34 +172,106 @@
 
   scene = new BABYLON.Scene(engine);
 
-  // Câmera universal
-  camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(68, 80, -15), scene);
-  camera.rotation.x = Math.PI / 5;
-  camera.rotation.y = 10;
-  camera.attachControl(canvas,true);
-  camera.keysUp.push(87); camera.keysDown.push(83);
-  camera.keysLeft.push(65); camera.keysRight.push(68);
-  camera.speed = 15;
-  camera.angularSensibility = 450;
-  camera.inertia = 0.1;
-  camera.inputs.addMouseWheel();
-  camera.wheelPrecision = 50;
-  const MIN_Y = 1, MAX_Y = 100;
-  scene.registerBeforeRender(()=>{ if(camera.position.y<MIN_Y)camera.position.y=MIN_Y; if(camera.position.y>MAX_Y)camera.position.y=MAX_Y; });
-  // Ajustes para toque mobile
-camera.angularSensibility = 1500;   // mais suave no toque
-camera.panningSensibility = 40;     // melhora arrasto no touch
-camera.speed = 30;                 // aumenta velocidade da navegação
+  // =====================
+  // CÂMERAS: Desktop x Mobile
+  // =====================
+  const isMobile = () => ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || window.innerWidth <= 1024;
 
+  function createDesktopCamera(){
+    const cam = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
+    cam.rotation.x = Math.PI / 5;
+    cam.rotation.y = 10;
+    cam.attachControl(canvas, true);
+    cam.keysUp.push(87); cam.keysDown.push(83);
+    cam.keysLeft.push(65); cam.keysRight.push(68);
+    cam.speed = 15;
+    cam.angularSensibility = 450;
+    cam.inertia = 0.1;
+    cam.inputs.addMouseWheel();
+    cam.wheelPrecision = 50;
+    const MIN_Y = 1, MAX_Y = 100;
+    scene.registerBeforeRender(()=>{
+      if(cam.position.y<MIN_Y) cam.position.y=MIN_Y;
+      if(cam.position.y>MAX_Y) cam.position.y=MAX_Y;
+    });
+    return cam;
+  }
 
+  function createMobileCamera(){
+    // Queremos que a ArcRotateCamera inicie exatamente na mesma posição e orientação da câmera desktop.
+    // Para isso calculemos o "target" a partir da posição/rotação do desktop (mesmos valores usados em createDesktopCamera).
+    const desktopPos = new BABYLON.Vector3(68, 80, -15);
+    const desktopRotX = Math.PI / 5; // mesma rotação X usada no desktop
+    const desktopRotY = 10;         // mesma rotação Y usada no desktop
+
+    // Criamos uma câmera temporária (não renderizada) para obter o vetor 'forward' a partir das rotações.
+    const tmp = new BABYLON.UniversalCamera("tmpCam", desktopPos.clone(), scene);
+    tmp.rotation.x = desktopRotX;
+    tmp.rotation.y = desktopRotY;
+    // vetor de direção para frente (normalizado)
+    const forward = tmp.getDirection(new BABYLON.Vector3(0,0,1));
+
+    // Distância na qual consideramos o ponto alvo na frente da câmera desktop.
+    // Ajuste targetDist se achar que o ponto de foco ficou muito perto/longe.
+    const targetDist = 100;
+    const target = desktopPos.add(forward.scale(targetDist));
+
+    // Calcula parâmetros alpha/beta/radius para a ArcRotate a partir da posição e do alvo.
+    const radius = BABYLON.Vector3.Distance(desktopPos, target);
+    const alpha = Math.atan2(desktopPos.z - target.z, desktopPos.x - target.x);
+    const beta  = Math.acos((desktopPos.y - target.y) / radius);
+
+    // limpamos a câmera temporária
+    tmp.dispose();
+
+    const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
+    cam.attachControl(canvas, true);
+
+    // Gestos
+    cam.useNaturalPinchZoom = true;          // zoom mais intuitivo
+    cam.pinchDeltaPercentage = 0.01;         // sensibilidade do pinch
+    cam.panningSensibility = 50;             // dois dedos = pan
+    cam.angularSensibilityTouch = 2000;      // suaviza giro no toque
+
+    // Limites para não atravessar/virar demais
+    cam.lowerRadiusLimit = 20;
+    cam.upperRadiusLimit = 400;
+    cam.lowerBetaLimit   = 0.15;             // não ficar totalmente de lado
+    cam.upperBetaLimit   = Math.PI/2.05;     // não passar do horizonte
+
+    // Pequeno amortecimento
+    cam.inertia = 0.85;
+    cam.zoomToMouseLocation = false; // no mobile, segue o centro
+
+    return cam;
+}
+camera = isMobile() ? createMobileCamera() : createDesktopCamera();
+
+  // Utilitários de movimento/zoom (funcionam para ambas as câmeras)
   const STEP = 5;
   const ZOOM_STEP = 8;
-  function moveRelative(forward,right){
-      const f=camera.getDirection(new BABYLON.Vector3(0,0,1)); f.y=0; f.normalize();
-      const r=camera.getDirection(new BABYLON.Vector3(1,0,0)); r.y=0; r.normalize();
-      camera.position.addInPlace(f.scale(forward*STEP).add(r.scale(right*STEP)));
+  function isArc() { return camera && camera.getClassName && camera.getClassName() === "ArcRotateCamera"; }
+
+  function moveRelative(forward, right){
+      const f = camera.getDirection(new BABYLON.Vector3(0,0,1)); f.y=0; f.normalize();
+      const r = camera.getDirection(new BABYLON.Vector3(1,0,0)); r.y=0; r.normalize();
+      const delta = f.scale(forward*STEP).add(r.scale(right*STEP));
+      if(isArc()){
+        camera.target.addInPlace(delta);
+      } else {
+        camera.position.addInPlace(delta);
+      }
   }
-  function zoomRelative(sign){ const f=camera.getDirection(new BABYLON.Vector3(0,0,1)); camera.position.addInPlace(f.scale(sign*ZOOM_STEP)); }
+  function zoomRelative(sign){
+      if(isArc()){
+        const next = camera.radius - sign*ZOOM_STEP;
+        camera.radius = BABYLON.Scalar.Clamp(next, camera.lowerRadiusLimit||5, camera.upperRadiusLimit||300);
+      } else {
+        const f = camera.getDirection(new BABYLON.Vector3(0,0,1));
+        camera.position.addInPlace(f.scale(sign*ZOOM_STEP));
+      }
+  }
+
   function attachHold(btn, action){
       if(!btn) return;
       let interval=null;
@@ -226,6 +290,7 @@ camera.speed = 30;                 // aumenta velocidade da navegação
   attachHold(document.getElementById('btnZoomIn'), ()=>zoomRelative(1));
   attachHold(document.getElementById('btnZoomOut'), ()=>zoomRelative(-1));
 
+  // Luz, chão e skybox
   new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
   const ground = BABYLON.MeshBuilder.CreateGround("ground",{width:1000,height:1000},scene);
   ground.position.y=-0.05;
@@ -410,14 +475,13 @@ camera.speed = 30;                 // aumenta velocidade da navegação
   scene.onPointerObservable.add(async (pointerInfo)=>{
       if(pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK) return;
 
-const pick = pointerInfo.pickInfo; 
-if(!pick || !pick.hit) return;
+      const pick = pointerInfo.pickInfo; 
+      if(!pick || !pick.hit) return;
 
-const evt = pointerInfo.event || {};
-const isTouch = evt.pointerType === "touch";
+      const evt = pointerInfo.event || {};
+      const isTouch = evt.pointerType === "touch";
 
-
-      // ADMIN → Criar vaga com botão direito em qualquer ponto
+      // ADMIN → Criar vaga com botão direito em qualquer ponto (ou toque longo abaixo)
       if(role==='admin' && (evt.button === 2 || (evt.pointerType === "touch" && evt.longPress))){
           const pos = pick.pickedPoint.clone(); pos.y+=0.01;
           const mesh = criarVagaContorno(pos);
@@ -433,61 +497,65 @@ const isTouch = evt.pointerType === "touch";
           return;
       }
 
-// Movimentação ou seleção de vaga
-if(moverAtivo && vagaSelecionada){
-    vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
-    if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
-    atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
-    moverAtivo=false;
-} else {
-    const pickedMesh = pick.pickedMesh;
-    const vaga = encontrarVagaPorMesh(pickedMesh);
-    if(vaga) selecionarVaga(vaga);
-}
-
-  });
-let touchTimer = null;
-
-canvas.addEventListener("touchstart", (e) => {
-  if(role === "admin"){
-    touchTimer = setTimeout(() => {
-      const pick = scene.pick(scene.pointerX, scene.pointerY);
-      if(pick && pick.hit){
-        const pos = pick.pickedPoint.clone(); pos.y += 0.01;
-        const mesh = criarVagaContorno(pos);
-        mesh.rotation.y = 0;
-        if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-        const ref = db.ref('vagas').push();
-        const id = ref.key;
-        const vaga = { mesh, ocupada:false, carro:null, id, carModel:null };
-        vagas.push(vaga);
-        ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null });
-        selecionarVaga(vaga);
-        atualizarPainel();
+      // Movimentação ou seleção de vaga
+      if(moverAtivo && vagaSelecionada){
+          vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
+          if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
+          atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
+          moverAtivo=false;
+      } else {
+          const pickedMesh = pick.pickedMesh;
+          const vaga = encontrarVagaPorMesh(pickedMesh);
+          if(vaga) selecionarVaga(vaga);
       }
-    }, 800); // 800ms = toque longo
-  }
-});
+  });
 
-canvas.addEventListener("touchend", (e) => {
-  if(touchTimer){
-    clearTimeout(touchTimer);
-    touchTimer = null;
-  }
+  // Toque longo (mobile) para criar vaga
+  let touchTimer = null;
+  canvas.addEventListener("touchstart", (e) => {
+    if(role === "admin"){
+      touchTimer = setTimeout(() => {
+        const pick = scene.pick(scene.pointerX, scene.pointerY);
+        if(pick && pick.hit){
+          const pos = pick.pickedPoint.clone(); pos.y += 0.01;
+          const mesh = criarVagaContorno(pos);
+          mesh.rotation.y = 0;
+          if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
+          const ref = db.ref('vagas').push();
+          const id = ref.key;
+          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null };
+          vagas.push(vaga);
+          ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null });
+          selecionarVaga(vaga);
+          atualizarPainel();
+        }
+      }, 800); // 800ms = toque longo
+    }
+  });
 
-  // Seleção de vaga com toque simples
-  const pick = scene.pick(scene.pointerX, scene.pointerY);
-  if(pick && pick.hit){
-    const vaga = encontrarVagaPorMesh(pick.pickedMesh);
-    if(vaga) selecionarVaga(vaga);
-  }
-});
+  canvas.addEventListener("touchend", (e) => {
+    if(touchTimer){
+      clearTimeout(touchTimer);
+      touchTimer = null;
+    }
 
-
-
+    // Seleção de vaga com toque simples
+    const pick = scene.pick(scene.pointerX, scene.pointerY);
+    if(pick && pick.hit){
+      const vaga = encontrarVagaPorMesh(pick.pickedMesh);
+      if(vaga) selecionarVaga(vaga);
+    }
+  });
 
   engine.runRenderLoop(()=>scene.render());
-  window.addEventListener("resize",()=>engine.resize());
+  window.addEventListener("resize",()=>{
+    engine.resize();
+    // Se quiser alternar a câmera automaticamente ao redimensionar (opcional):
+    // const shouldBeMobile = isMobile();
+    // const isCurrentlyArc = camera && camera.getClassName && camera.getClassName()==='ArcRotateCamera';
+    // if(shouldBeMobile && !isCurrentlyArc){ camera.detachControl(); camera = createMobileCamera(); }
+    // if(!shouldBeMobile && isCurrentlyArc){ camera.detachControl(); camera = createDesktopCamera(); }
+  });
 </script>
 </body>
 </html>
