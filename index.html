@@ -4,22 +4,23 @@
   <meta charset="utf-8"/>
   <title>Gerenciador de Estacionamento 3D</title>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
     #renderCanvas { width: 100%; height: 100%; display:block; touch-action: none; }
-    #adminPanel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; line-height: 1.4;}
-    #loginPanel { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; }
-    #vagaPanel { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 8px; font-family: Arial; display: none; pointer-events: auto; }
+    #adminPanel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; line-height: 1.4; z-index: 30;}
+    #loginPanel { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; z-index: 30;}
+    #vagaPanel { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 8px; font-family: Arial; display: none; pointer-events: auto; z-index: 30; }
     #vagaPanel button { margin: 3px; padding: 6px 10px; }
     .hint { font-size: 12px; opacity: 0.85; }
 
-    /* Controles mobile (mantidos, mas o principal agora é gesto de pinça e giro) */
+    /* Controles mobile (mantidos) */
     #mobileControls {
       position: absolute;
       bottom: 20px;
@@ -56,6 +57,44 @@
     @media (max-width: 1024px) { 
       #mobileControls { display: flex }
     }
+
+    /* Lista lateral de vagas */
+    #vagaList {
+      position: absolute;
+      top: 80px;
+      right: 10px;
+      width: 220px;
+      max-height: 70%;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-family: Arial;
+      font-size: 14px;
+      z-index: 40;
+    }
+    #vagaList h4 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .vaga-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .vaga-item button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -87,6 +126,12 @@
   <button onclick="deletarVaga()">Deletar</button>
 </div>
 
+<!-- Lista lateral de vagas -->
+<div id="vagaList">
+  <h4>Lista de Vagas</h4>
+  <div id="vagaItems"></div>
+</div>
+
 <!-- Controles Mobile (opcionais) -->
 <div id="mobileControls">
   <div class="pad">
@@ -107,6 +152,7 @@
 </div>
 
 <script>
+  // Mantive a sua configuração original do Firebase (copiada do seu exemplo)
   const firebaseConfig = {
     apiKey: "AIzaSyAE8AgqS_rpQygvmO6ugTX5yQSjQDwJ0vk",
     authDomain: "smamus3d.firebaseapp.com",
@@ -130,11 +176,14 @@
   const PASSWORDS = { operator: "op123", admin: "admin123" };
   const PARKING_MODEL_FILE = "modelo.glb"; 
   const CAR_BASE_URL = "https://linckrafael.github.io/cars3D/";
-  const CAR_MODELS = ["car1.glb","car2.glb","car3.glb","car5.glb","car6.glb","car7.glb","car8.glb","car9.glb","car10.glb","car12.glb","car13.glb","car14.glb","car15.glb","car19.glb"];
+  const CAR_MODELS = ["car1.glb","car5.glb","car7.glb","car9.glb","car12.glb","car13.glb","car14.glb"];
   const VAGA_LARGURA = 4.0;
   const VAGA_COMPRIMENTO = 8.0;
   const VAGA_ALTURA = 2.0;
   const MARGEM_ESCALA = 0.95;
+
+  // Contador sequencial (será atualizado a partir do Firebase ao carregar)
+  let nextVagaNumber = 1;
 
   function login(){
     const selected = document.getElementById("roleSelect").value;
@@ -150,6 +199,7 @@
       return;
     }
     atualizarInterface();
+    atualizarListaVagas();
   }
 
   function atualizarInterface(){
@@ -199,7 +249,6 @@
 
   function createMobileCamera(){
     // Queremos que a ArcRotateCamera inicie exatamente na mesma posição e orientação da câmera desktop.
-    // Para isso calculemos o "target" a partir da posição/rotação do desktop (mesmos valores usados em createDesktopCamera).
     const desktopPos = new BABYLON.Vector3(68, 80, -15);
     const desktopRotX = Math.PI / 5; // mesma rotação X usada no desktop
     const desktopRotY = 10;         // mesma rotação Y usada no desktop
@@ -212,7 +261,6 @@
     const forward = tmp.getDirection(new BABYLON.Vector3(0,0,1));
 
     // Distância na qual consideramos o ponto alvo na frente da câmera desktop.
-    // Ajuste targetDist se achar que o ponto de foco ficou muito perto/longe.
     const targetDist = 100;
     const target = desktopPos.add(forward.scale(targetDist));
 
@@ -228,24 +276,24 @@
     cam.attachControl(canvas, true);
 
     // Gestos
-    cam.useNaturalPinchZoom = true;          // zoom mais intuitivo
-    cam.pinchDeltaPercentage = 0.01;         // sensibilidade do pinch
-    cam.panningSensibility = 50;             // dois dedos = pan
-    cam.angularSensibilityTouch = 2000;      // suaviza giro no toque
+    cam.useNaturalPinchZoom = true;
+    cam.pinchDeltaPercentage = 0.01;
+    cam.panningSensibility = 50;
+    cam.angularSensibilityTouch = 2000;
 
     // Limites para não atravessar/virar demais
     cam.lowerRadiusLimit = 20;
     cam.upperRadiusLimit = 400;
-    cam.lowerBetaLimit   = 0.15;             // não ficar totalmente de lado
-    cam.upperBetaLimit   = Math.PI/2.05;     // não passar do horizonte
+    cam.lowerBetaLimit   = 0.15;
+    cam.upperBetaLimit   = Math.PI/2.05;
 
     // Pequeno amortecimento
     cam.inertia = 0.85;
     cam.zoomToMouseLocation = false; // no mobile, segue o centro
 
     return cam;
-}
-camera = isMobile() ? createMobileCamera() : createDesktopCamera();
+  }
+  camera = isMobile() ? createMobileCamera() : createDesktopCamera();
 
   // Utilitários de movimento/zoom (funcionam para ambas as câmeras)
   const STEP = 5;
@@ -319,7 +367,7 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       const mat=new BABYLON.StandardMaterial("vagaMat",scene); mat.diffuseColor=new BABYLON.Color3(0,1,0); mat.alpha=0.3; plane.material=mat; plane.isPickable=true; 
       return plane; 
   }
-  function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); }
+  function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); atualizarPainel(); }
   function encontrarVagaPorMesh(mesh){ return vagas.find(v=>v.mesh===mesh); }
   function normalizarOrientacao(carroRoot){ 
       let {size}=getSizeOf(carroRoot); 
@@ -361,6 +409,44 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       return carroRoot; 
   }
 
+  // adiciona o número visual sobre a vaga (usa BABYLON.GUI)
+  function adicionarNumeroNaVaga(vagaMesh, numero){
+    // evita duplicar se já tiver
+    if(!vagaMesh || vagaMesh._labelPlane) return;
+    const plane = BABYLON.MeshBuilder.CreatePlane("vagaLabelPlane",{size: 2}, scene);
+    // posiciona um pouco acima do chão na mesma coordenada X/Z da vaga
+    plane.position = vagaMesh.position.clone().add(new BABYLON.Vector3(1.3,0.2,3));
+    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // sempre encara a câmera
+    plane.isPickable = false;
+    plane._parentVagaMesh = vagaMesh; // referência
+    // cria textura GUI para o plano
+    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+    const tb = new BABYLON.GUI.TextBlock();
+    tb.text = numero;
+    tb.color = "white";
+    tb.fontSize = 500;
+    tb.outlineWidth = 16;
+    tb.outlineColor = "black";
+    tb.fontWeight = "bold";
+    adt.addControl(tb);
+    // guarda referências para controlar depois (ex: mover junto, atualizar texto, remover)
+    vagaMesh._labelPlane = plane;
+    vagaMesh._labelADT = adt;
+    vagaMesh._labelTextBlock = tb;
+  }
+
+  // atualiza/habilita texto se já existir
+function atualizarNumeroVaga(vaga){
+    if(!vaga) return;
+    if(vaga.mesh._labelTextBlock){
+        // Só o número, sem o "VAGA "
+        vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ","");
+    } else if(vaga.numero){
+        adicionarNumeroNaVaga(vaga.mesh, vaga.numero.replace("VAGA ",""));
+    }
+}
+
+
   function atualizarFirebase(vaga, id){
       db.ref('vagas/'+id).set({
           x: vaga.mesh.position.x,
@@ -368,7 +454,8 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
           z: vaga.mesh.position.z,
           rotY: vaga.mesh.rotation.y,
           ocupada: vaga.ocupada,
-          carModel: vaga.carModel || null
+          carModel: vaga.carModel || null,
+          numero: vaga.numero || null
       });
   }
 
@@ -396,7 +483,8 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       try{
           const carro=await carregarCarroNormalizado(vagaSelecionada, vagaSelecionada.carModel);
           vagaSelecionada.carro=carro;
-          atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+          // atualiza firebase (inclui numero)
+          if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
       }catch(e){
           console.error("Erro ao carregar carro:",e);
           vagaSelecionada.ocupada=false;
@@ -404,6 +492,7 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
           if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
       }
       atualizarPainel();
+      atualizarListaVagas();
   }
 
   function liberarVaga(){
@@ -412,8 +501,9 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       vagaSelecionada.carModel=null;
       if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
       if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
-      atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+      if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
       atualizarPainel();
+      atualizarListaVagas();
   }
 
   function rotacionarVaga(angulo){
@@ -424,7 +514,7 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
           vagaSelecionada.carro.rotation.y+=rad;
           posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
       }
-      atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+      if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
   }
 
   function ativarMover(){ if(role==="admin"&&vagaSelecionada)moverAtivo=true; }
@@ -432,46 +522,115 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
   function deletarVaga(){
       if(role!=="admin"||!vagaSelecionada)return;
       if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
+      // remove label se existir
+      if(vagaSelecionada.mesh._labelPlane){ vagaSelecionada.mesh._labelPlane.dispose(); vagaSelecionada.mesh._labelPlane = null; }
       vagaSelecionada.mesh.dispose();
-      db.ref('vagas/'+vagaSelecionada.id).remove();
+      if(vagaSelecionada.id) db.ref('vagas/'+vagaSelecionada.id).remove();
       vagas=vagas.filter(v=>v!==vagaSelecionada);
       vagaSelecionada=null;
       document.getElementById("vagaPanel").style.display="none";
       atualizarPainel();
+      atualizarListaVagas();
   }
 
+  // extrai número inteiro do texto "VAGA 12" etc
+  function parseNumero(str){ if(!str) return null; const m = (""+str).match(/(\d+)/); return m? parseInt(m[1]) : null; }
+
+  // Lista lateral de vagas
+  function atualizarListaVagas(){
+    const container = document.getElementById("vagaItems");
+    container.innerHTML = "";
+    // Ordena por número (se existir)
+    const ordenadas = [...vagas].sort((a,b)=>{
+      const na = parseNumero(a.numero)||0; const nb = parseNumero(b.numero)||0; return na-nb;
+    });
+    ordenadas.forEach(vaga=>{
+      const item = document.createElement("div");
+      item.className = "vaga-item";
+      const label = document.createElement("span");
+      label.textContent = `${vaga.numero || '-'} - ${vaga.ocupada ? 'Ocupada' : 'Livre'}`;
+      label.style.cursor = 'pointer';
+      label.onclick = ()=>{ selecionarVaga(vaga); };
+      item.appendChild(label);
+      if(role !== 'viewer'){
+        const btn = document.createElement("button");
+        btn.textContent = vaga.ocupada ? "Liberar" : "Ocupar";
+        btn.onclick = ()=> toggleVagaStatus(vaga.id);
+        item.appendChild(btn);
+      }
+      container.appendChild(item);
+    });
+    atualizarPainel();
+  }
+
+  async function toggleVagaStatus(id){
+    const vaga = vagas.find(v => v.id === id);
+    if (!vaga) return;
+    vagaSelecionada = vaga;
+    if (vaga.ocupada) liberarVaga();
+    else await ocuparVaga();
+    atualizarListaVagas();
+  }
+
+  // ==== Firebase sync das vagas ====
   db.ref('vagas').on('value', snapshot => {
       const data = snapshot.val();
-      if(!data) return;
+      if(!data){
+        // limpa se não tiver vagas
+        vagas.forEach(v=>{ if(v.mesh) { if(v.mesh._labelPlane) v.mesh._labelPlane.dispose(); v.mesh.dispose(); }});
+        vagas = [];
+        nextVagaNumber = 1;
+        atualizarPainel();
+        atualizarListaVagas();
+        return;
+      }
+
+      // calcula o maior número existente para continuar a numeração sequencial
+      let maxNum = 0;
+      Object.keys(data).forEach(id=>{ const n = parseNumero(data[id].numero); if(n && n>maxNum) maxNum=n; });
+      nextVagaNumber = maxNum + 1;
+
       Object.keys(data).forEach(id => {
           const vData = data[id];
           let vaga = vagas.find(v=>v.id===id);
           if(!vaga){
               const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,vData.y,vData.z));
-              novaMesh.rotation.y = vData.rotY;
+              novaMesh.rotation.y = vData.rotY || 0;
               if(vData.ocupada && novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
               else if(novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-              vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id, carModel: vData.carModel || null };
+              const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
+              vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id, carModel: vData.carModel || null, numero };
               vagas.push(vaga);
+              // garante que o numero exista no DB
+              if(!vData.numero){ db.ref('vagas/'+id+'/numero').set(numero); }
+              // adiciona label 3D
+              atualizarNumeroVaga(vaga);
               if(vaga.ocupada) ocuparVagaFirebase(vaga);
           } else {
+              // atualiza posição/estado
               vaga.mesh.position.x = vData.x;
               vaga.mesh.position.y = vData.y;
               vaga.mesh.position.z = vData.z;
-              vaga.mesh.rotation.y = vData.rotY;
+              vaga.mesh.rotation.y = vData.rotY || 0;
               vaga.ocupada = vData.ocupada;
               vaga.carModel = vData.carModel || null;
+              vaga.numero = vData.numero || vaga.numero || null;
               if(vaga.ocupada && vaga.mesh.material) vaga.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
               else if(vaga.mesh.material) vaga.mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
               if(vaga.ocupada && !vaga.carro) ocuparVagaFirebase(vaga);
               if(!vaga.ocupada && vaga.carro){ vaga.carro.dispose(); vaga.carro=null; }
+              // atualiza label
+              atualizarNumeroVaga(vaga);
+              if(!vData.numero && vaga.numero){ db.ref('vagas/'+id+'/numero').set(vaga.numero); }
           }
       });
       atualizarPainel();
+      atualizarListaVagas();
   });
 
   canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
 
+  // Criação via clique (admin) ou toque com long-press
   scene.onPointerObservable.add(async (pointerInfo)=>{
       if(pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK) return;
 
@@ -481,7 +640,7 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       const evt = pointerInfo.event || {};
       const isTouch = evt.pointerType === "touch";
 
-      // ADMIN → Criar vaga com botão direito em qualquer ponto (ou toque longo abaixo)
+      // ADMIN → Criar vaga com botão direito em qualquer ponto
       if(role==='admin' && (evt.button === 2 || (evt.pointerType === "touch" && evt.longPress))){
           const pos = pick.pickedPoint.clone(); pos.y+=0.01;
           const mesh = criarVagaContorno(pos);
@@ -489,11 +648,15 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
           if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
           const ref = db.ref('vagas').push();
           const id = ref.key;
-          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null };
+          const numero = `VAGA ${nextVagaNumber++}`;
+          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null, numero };
           vagas.push(vaga);
-          await ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null });
+          await ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null, numero });
+          // adiciona label
+          atualizarNumeroVaga(vaga);
           selecionarVaga(vaga);
           atualizarPainel();
+          atualizarListaVagas();
           return;
       }
 
@@ -501,7 +664,7 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
       if(moverAtivo && vagaSelecionada){
           vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
           if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
-          atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
+          if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
           moverAtivo=false;
       } else {
           const pickedMesh = pick.pickedMesh;
@@ -523,11 +686,14 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
           if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
           const ref = db.ref('vagas').push();
           const id = ref.key;
-          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null };
+          const numero = `VAGA ${nextVagaNumber++}`;
+          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null, numero };
           vagas.push(vaga);
-          ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null });
+          ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null, numero });
+          atualizarNumeroVaga(vaga);
           selecionarVaga(vaga);
           atualizarPainel();
+          atualizarListaVagas();
         }
       }, 800); // 800ms = toque longo
     }
@@ -547,14 +713,18 @@ camera = isMobile() ? createMobileCamera() : createDesktopCamera();
     }
   });
 
+  // Expor pequenas funções de interface global (se quiser usar nos botões)
+  window.ocuparVaga = ocuparVaga;
+  window.liberarVaga = liberarVaga;
+  window.rotacionarVaga = rotacionarVaga;
+  window.ativarMover = ativarMover;
+  window.deletarVaga = deletarVaga;
+  window.toggleVagaStatus = toggleVagaStatus;
+  window.login = login;
+
   engine.runRenderLoop(()=>scene.render());
   window.addEventListener("resize",()=>{
     engine.resize();
-    // Se quiser alternar a câmera automaticamente ao redimensionar (opcional):
-    // const shouldBeMobile = isMobile();
-    // const isCurrentlyArc = camera && camera.getClassName && camera.getClassName()==='ArcRotateCamera';
-    // if(shouldBeMobile && !isCurrentlyArc){ camera.detachControl(); camera = createMobileCamera(); }
-    // if(!shouldBeMobile && isCurrentlyArc){ camera.detachControl(); camera = createDesktopCamera(); }
   });
 </script>
 </body>
