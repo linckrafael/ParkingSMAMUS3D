@@ -2,730 +2,2292 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>Gerenciador de Estacionamento 3D</title>
+  <title>Smamus 3D - Sistema Inteligente de Estacionamento</title>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-    #renderCanvas { width: 100%; height: 100%; display:block; touch-action: none; }
-    #adminPanel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; line-height: 1.4; z-index: 30;}
-    #loginPanel { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 8px; font-family: Arial; z-index: 30;}
-    #vagaPanel { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 8px; font-family: Arial; display: none; pointer-events: auto; z-index: 30; }
-    #vagaPanel button { margin: 3px; padding: 6px 10px; }
-    .hint { font-size: 12px; opacity: 0.85; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body {
+      width: 100%; height: 100%; 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden; background: #0a0a0a;
+    }
+    
+    #renderCanvas {
+      width: 100%; height: 100%; display: block; 
+      touch-action: none; position: relative; z-index: 1;
+    }
 
-    /* Controles mobile (mantidos) */
-    #mobileControls {
+    /* ===== GLASSMORPHISM BASE ===== */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      gap: 20px;
-      z-index: 10;
-    }
-    #mobileControls .pad {
-      display: grid;
-      grid-template-columns: 70px 70px 70px;
-      grid-template-rows: 70px 70px 70px;
-      gap: 12px;
-      justify-content: center;
-      align-items: center;
-    }
-    #mobileControls .zoom {
-      display: grid;
-      grid-auto-rows: 70px;
-      gap: 12px;
-      margin-left: 12px;
-    }
-    #mobileControls button {
-      border: none;
-      border-radius: 20px;
-      background: rgba(0,0,0,0.3);
-      color: #fff;
-      font-size: 28px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-    }
-    #mobileControls button:active { transform: scale(0.95); }
-
-    @media (max-width: 1024px) { 
-      #mobileControls { display: flex }
+      color: #e2e8f0;
+      z-index: 20;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Lista lateral de vagas */
-    #vagaList {
+    .glass-panel:hover {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ===== HEADER DASHBOARD ===== */
+    #smartDashboard {
+      top: 20px; left: 20px; right: 20px; height: 80px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .dashboard-section {
+      display: flex; align-items: center; gap: 24px;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      font-weight: 700; font-size: 24px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+
+    .metric-card {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px; padding: 12px 16px;
+      text-align: center; min-width: 100px;
+    }
+
+    .metric-value {
+      font-size: 24px; font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-label {
+      font-size: 12px; opacity: 0.8; margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .auth-section {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .role-badge {
+      padding: 6px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .role-viewer { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+    .role-operator { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .role-admin { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    /* ===== CONTROLES LATERAIS ===== */
+    #controlPanel {
+      top: 120px; right: 20px; width: 320px;
+      max-height: calc(100vh - 140px);
+      padding: 20px; overflow-y: auto;
+    }
+
+    .control-section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 14px; font-weight: 600; margin-bottom: 12px;
+      color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .tool-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .tool-btn, .action-btn {
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #e2e8f0; padding: 12px;
+      border-radius: 10px; cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px; text-align: center;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+      min-height: 60px; justify-content: center;
+    }
+
+    .tool-btn:hover, .action-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: rgba(59, 130, 246, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .tool-btn:active, .action-btn:active {
+      transform: translateY(0);
+    }
+
+    .tool-btn.active {
+      background: rgba(59, 130, 246, 0.4);
+      border-color: #3b82f6;
+    }
+
+    .tool-btn i, .action-btn i {
+      font-size: 16px; margin-bottom: 2px;
+    }
+
+    /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
+    #cameraLockBtn {
       position: absolute;
-      top: 80px;
-      right: 10px;
-      width: 220px;
-      max-height: 70%;
-      overflow-y: auto;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      font-family: Arial;
-      font-size: 14px;
-      z-index: 40;
+      top: 120px; right: 360px;
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #e2e8f0; padding: 12px;
+      border-radius: 12px; cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 30;
+      backdrop-filter: blur(10px);
     }
-    #vagaList h4 {
-      margin: 0 0 8px;
-      font-size: 16px;
-      text-align: center;
+
+    #cameraLockBtn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: #3b82f6;
+      transform: scale(1.05);
     }
+
+    #cameraLockBtn.locked {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    #cameraLockBtn.unlocked {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    /* ===== VAGAS PANEL ===== */
+    #vagasPanel {
+      top: 120px; left: 20px; width: 300px;
+      max-height: calc(100vh - 140px);
+      padding: 20px; overflow-y: auto;
+    }
+
+    .vaga-search {
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #e2e8f0; padding: 10px 12px;
+      border-radius: 8px; width: 100%;
+      margin-bottom: 16px; font-size: 14px;
+    }
+
+    .vaga-search:focus {
+      outline: none; border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .vaga-filters {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 6px 12px; border-radius: 16px;
+      font-size: 12px; cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+    }
+
+    .filter-chip:hover, .filter-chip.active {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: #3b82f6; color: #3b82f6;
+    }
+
     .vaga-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      padding: 4px 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
+      background: rgba(51, 65, 85, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 10px; padding: 12px; margin-bottom: 8px;
+      cursor: pointer; transition: all 0.2s ease;
     }
-    .vaga-item button {
-      background: rgba(255,255,255,0.2);
-      border: none;
+
+    .vaga-item:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .vaga-item.selected {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+    }
+
+    .vaga-item.editing {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+    }
+
+    .vaga-item.ocupada {
+      border-left: 4px solid #ef4444;
+    }
+
+    .vaga-item.livre {
+      border-left: 4px solid #10b981;
+    }
+
+    .vaga-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 8px;
+    }
+
+    .vaga-numero {
+      font-weight: 600; font-size: 14px;
+    }
+
+    .vaga-status {
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 12px; text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 500;
+    }
+
+    .status-ocupada { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-livre { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .status-editing { background: rgba(251, 191, 36, 0.2); color: #f59e0b; }
+
+    .vaga-actions {
+      display: flex; gap: 4px; margin-top: 8px;
+    }
+
+    .mini-btn {
+      background: rgba(148, 163, 184, 0.2);
+      border: none; color: #94a3b8;
+      padding: 4px 8px; border-radius: 6px;
+      font-size: 10px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mini-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      color: #3b82f6;
+    }
+
+    /* ===== CREATION WIZARD ===== */
+    #creationWizard {
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 400px; padding: 24px; display: none;
+      z-index: 50;
+    }
+
+    .wizard-header {
+      text-align: center; margin-bottom: 20px;
+    }
+
+    .wizard-title {
+      font-size: 20px; font-weight: 700; margin-bottom: 8px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .wizard-content {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .input-group {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+
+    .input-label {
+      font-size: 12px; font-weight: 500;
+      color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .wizard-input, .wizard-select {
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #e2e8f0; padding: 10px 12px;
+      border-radius: 8px; font-size: 14px;
+    }
+
+    .wizard-input:focus, .wizard-select:focus {
+      outline: none; border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .wizard-actions {
+      display: flex; gap: 12px; margin-top: 20px;
+    }
+
+    .wizard-btn {
+      flex: 1; padding: 12px; border: none;
+      border-radius: 8px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
       color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: rgba(107, 114, 128, 0.2);
+      color: #9ca3af;
+    }
+
+    .wizard-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ===== CONTROLES DE NAVEGAÇÃO ===== */
+    #navigationHelp {
+      position: absolute; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px; padding: 12px 16px;
+      color: #94a3b8; font-size: 12px;
+      z-index: 10; opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    #navigationHelp.transform-mode {
+      background: rgba(251, 191, 36, 0.9);
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #92400e;
+      opacity: 1;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    #navigationHelp.ctrl-active {
+      background: rgba(239, 68, 68, 0.9);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: white;
+      opacity: 1;
+      transform: translateX(-50%) scale(1.1);
+    }
+
+    #navigationHelp.camera-locked {
+      background: rgba(239, 68, 68, 0.9);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: white;
+      opacity: 1;
+    }
+
+    /* ===== QUICK ACTIONS BAR ===== */
+    #quickActions {
+      position: absolute; top: 50%; right: 380px;
+      transform: translateY(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px; padding: 12px;
+      display: none; flex-direction: column; gap: 8px;
+      z-index: 30;
+    }
+
+    #quickActions.show {
+      display: flex;
+    }
+
+    .quick-btn {
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #e2e8f0; padding: 8px 12px;
+      border-radius: 8px; cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 11px; text-align: center;
+      min-width: 80px;
+    }
+
+    .quick-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: #3b82f6;
+    }
+
+    .quick-btn.save {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    .quick-btn.cancel {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* ===== NOTIFICATION SYSTEM ===== */
+    .notification {
+      position: fixed; top: 100px; right: 20px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px; padding: 16px;
+      color: #e2e8f0; z-index: 100;
+      max-width: 350px; opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .notification.show {
+      opacity: 1; transform: translateX(0);
+    }
+
+    .notification.success { border-left: 4px solid #10b981; }
+    .notification.error { border-left: 4px solid #ef4444; }
+    .notification.warning { border-left: 4px solid #f59e0b; }
+    .notification.info { border-left: 4px solid #3b82f6; }
+
+    /* ===== MOBILE OPTIMIZATIONS ===== */
+    @media (max-width: 1024px) {
+      #smartDashboard { 
+        position: relative;
+        flex-direction: column; height: auto;
+        padding: 16px; gap: 16px;
+      }
+      
+      .dashboard-section { 
+        justify-content: center;
+        flex-wrap: wrap; gap: 12px;
+      }
+      
+      #controlPanel, #vagasPanel {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        width: 100%; 
+        height: auto;
+        max-height: 80vh;
+        border-radius: 20px 20px 0 0;
+        background: rgba(15, 23, 42, 0.95);
+        transform: translateY(calc(100% - 30px));
+        transition: transform 0.3s ease;
+        z-index: 50;
+        overflow: hidden; /* esconde conteúdo quando retraído */
+      }
+      
+      #controlPanel.expanded, #vagasPanel.expanded {
+        transform: translateY(0);
+      }
+      
+      .mobile-handle {
+        width: 50px; height: 6px;
+        background: rgba(148, 163, 184, 0.7);
+        border-radius: 3px; margin: 8px auto;
+        cursor: pointer;
+      }
+
+      #navigationHelp, #quickActions, #cameraLockBtn {
+        display: none !important;
+      }
+    }
+
+    /* ===== UTILITIES ===== */
+    .hidden { display: none !important; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== CURSOR STATES ===== */
+    .transforming-cursor { cursor: move !important; }
+    .rotating-cursor { cursor: crosshair !important; }
+    .camera-locked { cursor: not-allowed !important; }
+
+    /* ===== BOTÕES ESPECIAIS ===== */
+    .danger-btn {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      color: #ef4444 !important;
+    }
+
+    .danger-btn:hover {
+      background: rgba(239, 68, 68, 0.3) !important;
+      border-color: #ef4444 !important;
+    }
+
+    .success-btn {
+      background: rgba(16, 185, 129, 0.2) !important;
+      border-color: rgba(16, 185, 129, 0.5) !important;
+      color: #10b981 !important;
+    }
+
+    .success-btn:hover {
+      background: rgba(16, 185, 129, 0.3) !important;
+      border-color: #10b981 !important;
     }
   </style>
 </head>
 <body>
-<canvas id="renderCanvas"></canvas>
-
-<div id="adminPanel">
-  <div>Vagas livres: <span id="livres">0</span> | Ocupadas: <span id="ocupadas">0</span></div>
-  <div class="hint">Admin: clique com <b>botão direito</b> em qualquer ponto para criar uma vaga</div>
-</div>
-
-<div id="loginPanel">
-  Perfil:
-  <select id="roleSelect">
-    <option value="viewer">Usuário</option>
-    <option value="operator">Operador</option>
-    <option value="admin">Administrador</option>
-  </select><br/>
-  Senha: <input type="password" id="userPass"/>
-  <button onclick="login()">Entrar</button>
-</div>
-
-<div id="vagaPanel">
-  <h4>Gerenciar Vaga</h4>
-  <button onclick="ocuparVaga()">Ocupar</button>
-  <button onclick="liberarVaga()">Desocupar</button>
-  <button onclick="rotacionarVaga(-10)">⟲ Rotacionar</button>
-  <button onclick="rotacionarVaga(10)">Rotacionar ⟳</button>
-  <button onclick="ativarMover()">Mover</button>
-  <button onclick="deletarVaga()">Deletar</button>
-</div>
-
-<!-- Lista lateral de vagas -->
-<div id="vagaList">
-  <h4>Lista de Vagas</h4>
-  <div id="vagaItems"></div>
-</div>
-
-<!-- Controles Mobile (opcionais) -->
-<div id="mobileControls">
-  <div class="pad">
-    <div></div>
-    <button id="btnUp">▲</button>
-    <div></div>
-    <button id="btnLeft">◀</button>
-    <button id="btnDown">▼</button>
-    <button id="btnRight">▶</button>
-    <div></div>
-    <div></div>
-    <div></div>
+  <canvas id="renderCanvas"></canvas>
+  
+  <!-- Smart Dashboard Header -->
+  <div id="smartDashboard" class="glass-panel">
+    <div class="dashboard-section">
+      <div class="brand">
+        <i class="fas fa-cube"></i>
+        SMAMUS 3D
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="totalVagas">0</div>
+          <div class="metric-label">Total</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="vagasLivres">0</div>
+          <div class="metric-label">Livres</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="vagasOcupadas">0</div>
+          <div class="metric-label">Ocupadas</div>
+        </div>
+      </div>
+    </div>
+    <div class="dashboard-section">
+      <div class="auth-section">
+        <div id="roleBadge" class="role-badge role-viewer">Usuário</div>
+        <select id="roleSelect" class="wizard-select" style="width: auto;">
+          <option value="viewer">Usuário</option>
+          <option value="operator">Operador</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <input type="password" id="userPass" class="wizard-input" placeholder="Senha" style="width: 120px;"/>
+        <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
+          <i class="fas fa-sign-in-alt"></i>
+        </button>
+      </div>
+    </div>
   </div>
-  <div class="zoom">
-    <button id="btnZoomIn">＋</button>
-    <button id="btnZoomOut">－</button>
+
+  <!-- Botão de Bloqueio de Câmera -->
+  <div id="cameraLockBtn" class="unlocked" onclick="toggleCameraLock()">
+    <div style="text-align: center;">
+      <i class="fas fa-unlock" id="lockIcon"></i>
+      <div style="font-size: 10px; margin-top: 4px;">
+        <span id="lockText">Câmera Livre</span>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- Control Panel -->
+  <div id="controlPanel" class="glass-panel">
+    <div class="mobile-handle"></div>
+    
+    <div class="control-section">
+      <div class="section-title">
+        <i class="fas fa-tools"></i>
+        Ferramentas
+      </div>
+      <div class="tool-grid">
+        <div class="tool-btn active" id="selectTool" onclick="toggleTool('select')">
+          <i class="fas fa-mouse-pointer"></i>
+          <span>Selecionar</span>
+        </div>
+        <div class="tool-btn" id="createTool" onclick="toggleTool('create')">
+          <i class="fas fa-plus"></i>
+          <span>Criar Vaga</span>
+        </div>
+        <div class="tool-btn" id="editTool" onclick="toggleTool('edit')">
+          <i class="fas fa-edit"></i>
+          <span>Editar Livre</span>
+        </div>
+        <div class="tool-btn" id="gridTool" onclick="toggleTool('grid')">
+          <i class="fas fa-th"></i>
+          <span>Grid Auto</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section" id="cameraControls">
+      <div class="section-title">
+        <i class="fas fa-video"></i>
+        Câmera
+      </div>
+      <div class="tool-grid">
+        <div class="action-btn" onclick="resetCamera()">
+          <i class="fas fa-home"></i>
+          <span>Resetar</span>
+        </div>
+        <div class="action-btn" onclick="focusOnSelected()">
+          <i class="fas fa-crosshairs"></i>
+          <span>Focar</span>
+        </div>
+        <div class="action-btn" onclick="setTopView()">
+          <i class="fas fa-eye"></i>
+          <span>Vista Superior</span>
+        </div>
+        <div class="action-btn" onclick="setIsometricView()">
+          <i class="fas fa-cube"></i>
+          <span>Isométrica</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section" id="vagaActions">
+      <div class="section-title">
+        <i class="fas fa-cog"></i>
+        Ações da Vaga
+      </div>
+      <div class="tool-grid">
+        <div class="action-btn" onclick="ocuparVaga()">
+          <i class="fas fa-car"></i>
+          <span>Ocupar</span>
+        </div>
+        <div class="action-btn" onclick="liberarVaga()">
+          <i class="fas fa-car-side"></i>
+          <span>Liberar</span>
+        </div>
+        <div class="action-btn danger-btn" onclick="deleteVaga()">
+          <i class="fas fa-trash"></i>
+          <span>Excluir</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section" id="batchActions">
+      <div class="section-title">
+        <i class="fas fa-layer-group"></i>
+        Operações em Lote
+      </div>
+      <div class="tool-grid">
+        <div class="action-btn success-btn" onclick="ocuparTodas()">
+          <i class="fas fa-car"></i>
+          <span>Ocupar Todas</span>
+        </div>
+        <div class="action-btn" onclick="liberarTodas()">
+          <i class="fas fa-broom"></i>
+          <span>Liberar Todas</span>
+        </div>
+        <div class="action-btn danger-btn" onclick="excluirTodas()">
+          <i class="fas fa-trash-alt"></i>
+          <span>Excluir Todas</span>
+        </div>
+        <div class="action-btn" onclick="exportarDados()">
+          <i class="fas fa-download"></i>
+          <span>Exportar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vagas Panel -->
+  <div id="vagasPanel" class="glass-panel">
+    <div class="mobile-handle"></div>
+    
+    <div class="section-title">
+      <i class="fas fa-parking"></i>
+      Gerenciamento de Vagas
+    </div>
+    
+    <input type="text" class="vaga-search" id="vagaSearch" placeholder="Buscar vaga...">
+    
+    <div class="vaga-filters">
+      <div class="filter-chip active" data-filter="all">Todas</div>
+      <div class="filter-chip" data-filter="livre">Livres</div>
+      <div class="filter-chip" data-filter="ocupada">Ocupadas</div>
+    </div>
+    
+    <div id="vagasList"></div>
+  </div>
+
+  <!-- Quick Actions (when editing) -->
+  <div id="quickActions">
+    <div class="quick-btn save" onclick="saveVagaPosition()">
+      <i class="fas fa-save"></i><br>Salvar
+    </div>
+    <div class="quick-btn cancel" onclick="cancelVagaEdit()">
+      <i class="fas fa-times"></i><br>Cancelar
+    </div>
+    <div class="quick-btn" onclick="resetVagaRotation()">
+      <i class="fas fa-undo"></i><br>Reset Rot
+    </div>
+  </div>
+
+  <!-- Creation Wizard -->
+  <div id="creationWizard" class="glass-panel">
+    <div class="wizard-header">
+      <div class="wizard-title">Assistente de Criação</div>
+      <div style="font-size: 14px; color: #94a3b8;">Configure os parâmetros da nova vaga</div>
+    </div>
+    <div class="wizard-content">
+      <div class="input-group">
+        <label class="input-label">Tipo de Criação</label>
+        <select class="wizard-select" id="creationType">
+          <option value="single">Vaga Individual</option>
+          <option value="row">Fileira (Horizontal)</option>
+          <option value="column">Coluna (Vertical)</option>
+          <option value="grid">Grid Automático</option>
+        </select>
+      </div>
+      <div class="input-group" id="quantityGroup">
+        <label class="input-label">Quantidade</label>
+        <input type="number" class="wizard-input" id="vagaQuantity" value="1" min="1" max="20">
+      </div>
+      <div class="input-group" id="spacingGroup">
+        <label class="input-label">Espaçamento</label>
+        <input type="number" class="wizard-input" id="vagaSpacing" value="1" min="0.5" max="5" step="0.5">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Orientação</label>
+        <select class="wizard-select" id="vagaOrientation">
+          <option value="0">Norte (0°)</option>
+          <option value="90">Leste (90°)</option>
+          <option value="180">Sul (180°)</option>
+          <option value="270">Oeste (270°)</option>
+        </select>
+      </div>
+    </div>
+    <div class="wizard-actions">
+      <button class="wizard-btn btn-secondary" onclick="closeWizard()">Cancelar</button>
+      <button class="wizard-btn btn-primary" onclick="createVagasFromWizard()">Criar Vagas</button>
+    </div>
+  </div>
+
+  <!-- Navigation Help -->
+  <div id="navigationHelp">
+    <i class="fas fa-info-circle"></i>
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
+  </div>
 
 <script>
-  // Mantive a sua configuração original do Firebase (copiada do seu exemplo)
-  const firebaseConfig = {
-    apiKey: "AIzaSyAE8AgqS_rpQygvmO6ugTX5yQSjQDwJ0vk",
-    authDomain: "smamus3d.firebaseapp.com",
-    databaseURL: "https://smamus3d-default-rtdb.firebaseio.com",
-    projectId: "smamus3d",
-    storageBucket: "smamus3d.firebasestorage.app",
-    messagingSenderId: "951385126549",
-    appId: "1:951385126549:web:c80ed059acdf45bdcc8d9c",
-    measurementId: "G-H52V7SLBGE"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+// ===== CONFIGURAÇÃO E INICIALIZAÇÃO =====
+const firebaseConfig = {
+  apiKey: "AIzaSyAE8AgqS_rpQygvmO6ugTX5yQSjQDwJ0vk",
+  authDomain: "smamus3d.firebaseapp.com",
+  databaseURL: "https://smamus3d-default-rtdb.firebaseio.com",
+  projectId: "smamus3d",
+  storageBucket: "smamus3d.firebasestorage.app",
+  messagingSenderId: "951385126549",
+  appId: "1:951385126549:web:c80ed059acdf45bdcc8d9c",
+  measurementId: "G-H52V7SLBGE"
+};
 
-  const canvas = document.getElementById("renderCanvas");
-  const engine = new BABYLON.Engine(canvas, true);
-  let scene, camera;
-  let vagas = [];
-  let vagaSelecionada = null;
-  let moverAtivo = false;
-  let role = "viewer";
-  const PASSWORDS = { operator: "op123", admin: "admin123" };
-  const PARKING_MODEL_FILE = "modelo.glb"; 
-  const CAR_BASE_URL = "https://linckrafael.github.io/cars3D/";
-  const CAR_MODELS = ["car1.glb","car5.glb","car7.glb","car9.glb","car12.glb","car13.glb","car14.glb"];
-  const VAGA_LARGURA = 4.0;
-  const VAGA_COMPRIMENTO = 8.0;
-  const VAGA_ALTURA = 2.0;
-  const MARGEM_ESCALA = 0.95;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  // Contador sequencial (será atualizado a partir do Firebase ao carregar)
-  let nextVagaNumber = 1;
+// ===== VARIÁVEIS GLOBAIS =====
+const canvas = document.getElementById("renderCanvas");
+const engine = new BABYLON.Engine(canvas, true);
+let scene, camera;
+let vagas = [];
+let vagaSelecionada = null;
+let currentTool = 'select';
+let role = "viewer";
+let nextVagaNumber = 1;
+let pendingPosition = null;
 
-  function login(){
-    const selected = document.getElementById("roleSelect").value;
-    const pass = document.getElementById("userPass").value;
-    if(selected === "viewer"){
-      role = "viewer";
-      alert("Modo Visualizador");
-    } else if(pass === PASSWORDS[selected]){
-      role = selected;
-      alert("Modo " + (role === "admin" ? "Administrador" : "Operador") + " Ativado");
-    } else {
-      alert("Senha incorreta");
-      return;
-    }
-    atualizarInterface();
-    atualizarListaVagas();
+// ===== CONTROLE DE EDIÇÃO =====
+let isEditingMode = false;
+let isCtrlPressed = false;
+let originalVagaState = null;
+let isDragging = false;
+let lastPointerPosition = null;
+let cameraWasAttached = true;
+
+// ===== CONTROLE DE CÂMERA =====
+let isCameraLocked = false;
+let savedCameraState = null;
+let isMobile = false;
+
+// ===== CONSTANTES =====
+const PASSWORDS = { operator: "op123", admin: "admin123" };
+const PARKING_MODEL_FILE = "modelo.glb";
+const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
+const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car9.glb","car10.glb"];
+const VAGA_LARGURA = 4.0;
+const VAGA_COMPRIMENTO = 8.0;
+const VAGA_ALTURA = 2.0;
+const MARGEM_ESCALA = 0.95;
+
+// ===== SISTEMA DE NOTIFICAÇÕES =====
+class NotificationSystem {
+  static show(message, type = 'info', duration = 3000) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-${this.getIcon(type)}"></i>
+        <span>${message}</span>
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.classList.add('show'), 100);
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, duration);
   }
-
-  function atualizarInterface(){
-    document.querySelectorAll("#vagaPanel button").forEach(btn => btn.style.display = "none");
-    if(role === "operator"){
-      document.querySelector("button[onclick='ocuparVaga()']").style.display = "inline-block";
-      document.querySelector("button[onclick='liberarVaga()']").style.display = "inline-block";
-    }
-    if(role === "admin"){
-      document.querySelectorAll("#vagaPanel button").forEach(btn => btn.style.display = "inline-block");
-    }
+  
+  static getIcon(type) {
+    const icons = {
+      success: 'check-circle',
+      error: 'exclamation-circle',
+      warning: 'exclamation-triangle',
+      info: 'info-circle'
+    };
+    return icons[type] || 'info-circle';
   }
+}
 
-  function atualizarPainel(){
-    const livres = vagas.filter(v => !v.ocupada).length;
-    const ocupadas = vagas.length - livres;
-    document.getElementById("livres").innerText = livres;
-    document.getElementById("ocupadas").innerText = ocupadas;
-  }
-
+// ===== INICIALIZAÇÃO DA CENA =====
+function initializeScene() {
   scene = new BABYLON.Scene(engine);
+  
+  // Detectar se é mobile
+  isMobile = ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || window.innerWidth <= 1024;
+  
+  // Câmera mais intuitiva
+  if (isMobile) {
+    // Mobile: ArcRotate com controles livres
+    camera = new BABYLON.ArcRotateCamera("mobileCam", -Math.PI/4, Math.PI/3, 80, new BABYLON.Vector3(68, 80, -15), scene);
+    camera.useNaturalPinchZoom = true;
+    camera.pinchDeltaPercentage = 0.003; // Zoom mais controlado
+    camera.panningSensibility = 200; // Movimento mais suave
+    camera.angularSensibilityTouch = 2000; // Rotação mais suave
+    camera.wheelPrecision = 50; // Zoom com wheel mais responsivo
+  } else {
+    // Desktop: Universal Camera mais intuitiva
+    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
+    camera.rotation.x = Math.PI / 5;
+    camera.rotation.y = 10.5;
+    camera.keysUp.push(87); // W
+    camera.keysDown.push(83); // S
+    camera.keysLeft.push(65); // A
+    camera.keysRight.push(68); // D
+    camera.speed = 1.5; // Movimento mais lento e controlado
+    camera.angularSensibility = 2000; // Rotação mais suave
+    camera.inputs.addMouseWheel();
+    camera.wheelPrecision = 50;
 
-  // =====================
-  // CÂMERAS: Desktop x Mobile
-  // =====================
-  const isMobile = () => ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || window.innerWidth <= 1024;
+// Zoom com scroll no UniversalCamera
+canvas.addEventListener("wheel", (e) => {
+  const zoomSpeed = 2; // ajusta a sensibilidade do zoom
+  const forward = camera.getDirection(BABYLON.Axis.Z);
 
-  function createDesktopCamera(){
-    const cam = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
-    cam.rotation.x = Math.PI / 5;
-    cam.rotation.y = 10.5;
-    cam.attachControl(canvas, true);
-    cam.keysUp.push(87); cam.keysDown.push(83);
-    cam.keysLeft.push(65); cam.keysRight.push(68);
-    cam.speed = 15;
-    cam.angularSensibility = 450;
-    cam.inertia = 0.1;
-    cam.inputs.addMouseWheel();
-    cam.wheelPrecision = 50;
+  if (e.deltaY < 0) {
+    // scroll pra cima = aproxima
+    camera.position.addInPlace(forward.scale(zoomSpeed));
+  } else {
+    // scroll pra baixo = afasta
+    camera.position.addInPlace(forward.scale(-zoomSpeed));
+  }
+});
+
     const MIN_Y = 1, MAX_Y = 100;
     scene.registerBeforeRender(()=>{
-      if(cam.position.y<MIN_Y) cam.position.y=MIN_Y;
-      if(cam.position.y>MAX_Y) cam.position.y=MAX_Y;
+      if(camera.position.y<MIN_Y) camera.position.y=MIN_Y;
+      if(camera.position.y>MAX_Y) camera.position.y=MAX_Y;
     });
-    return cam;
   }
-
-  function createMobileCamera(){
-    // Queremos que a ArcRotateCamera inicie exatamente na mesma posição e orientação da câmera desktop.
-    const desktopPos = new BABYLON.Vector3(68, 80, -15);
-    const desktopRotX = Math.PI / 5; // mesma rotação X usada no desktop
-    const desktopRotY = 10;         // mesma rotação Y usada no desktop
-
-    // Criamos uma câmera temporária (não renderizada) para obter o vetor 'forward' a partir das rotações.
-    const tmp = new BABYLON.UniversalCamera("tmpCam", desktopPos.clone(), scene);
-    tmp.rotation.x = desktopRotX;
-    tmp.rotation.y = desktopRotY;
-    // vetor de direção para frente (normalizado)
-    const forward = tmp.getDirection(new BABYLON.Vector3(0,0,1));
-
-    // Distância na qual consideramos o ponto alvo na frente da câmera desktop.
-    const targetDist = 100;
-    const target = desktopPos.add(forward.scale(targetDist));
-
-    // Calcula parâmetros alpha/beta/radius para a ArcRotate a partir da posição e do alvo.
-    const radius = BABYLON.Vector3.Distance(desktopPos, target);
-    const alpha = Math.atan2(desktopPos.z - target.z, desktopPos.x - target.x);
-    const beta  = Math.acos((desktopPos.y - target.y) / radius);
-
-    // limpamos a câmera temporária
-    tmp.dispose();
-
-    const cam = new BABYLON.ArcRotateCamera("mobileCam", alpha, beta, radius, target, scene);
-    cam.attachControl(canvas, true);
-
-    // Gestos
-    cam.useNaturalPinchZoom = true;
-    cam.pinchDeltaPercentage = 0.01;
-    cam.panningSensibility = 50;
-    cam.angularSensibilityTouch = 2000;
-
-    // Limites para não atravessar/virar demais
-    cam.lowerRadiusLimit = 20;
-    cam.upperRadiusLimit = 400;
-    cam.lowerBetaLimit   = 0.15;
-    cam.upperBetaLimit   = Math.PI/2.05;
-
-    // Pequeno amortecimento
-    cam.inertia = 0.85;
-    cam.zoomToMouseLocation = false; // no mobile, segue o centro
-
-    return cam;
+  
+  // Limites de câmera
+  if (camera.lowerRadiusLimit !== undefined) {
+    camera.lowerRadiusLimit = 20;
+    camera.upperRadiusLimit = 200;
+    camera.lowerBetaLimit = 0.1;
+    camera.upperBetaLimit = Math.PI/2.2;
   }
-  camera = isMobile() ? createMobileCamera() : createDesktopCamera();
-
-  // Utilitários de movimento/zoom (funcionam para ambas as câmeras)
-  const STEP = 5;
-  const ZOOM_STEP = 8;
-  function isArc() { return camera && camera.getClassName && camera.getClassName() === "ArcRotateCamera"; }
-
-  function moveRelative(forward, right){
-      const f = camera.getDirection(new BABYLON.Vector3(0,0,1)); f.y=0; f.normalize();
-      const r = camera.getDirection(new BABYLON.Vector3(1,0,0)); r.y=0; r.normalize();
-      const delta = f.scale(forward*STEP).add(r.scale(right*STEP));
-      if(isArc()){
-        camera.target.addInPlace(delta);
-      } else {
-        camera.position.addInPlace(delta);
-      }
-  }
-  function zoomRelative(sign){
-      if(isArc()){
-        const next = camera.radius - sign*ZOOM_STEP;
-        camera.radius = BABYLON.Scalar.Clamp(next, camera.lowerRadiusLimit||5, camera.upperRadiusLimit||300);
-      } else {
-        const f = camera.getDirection(new BABYLON.Vector3(0,0,1));
-        camera.position.addInPlace(f.scale(sign*ZOOM_STEP));
-      }
-  }
-
-  function attachHold(btn, action){
-      if(!btn) return;
-      let interval=null;
-      const start=(e)=>{ e.preventDefault(); action(); interval=setInterval(action,100); };
-      const end=()=>{ if(interval){ clearInterval(interval); interval=null; } };
-      btn.addEventListener('touchstart',start,{passive:false});
-      btn.addEventListener('mousedown',start);
-      window.addEventListener('touchend',end);
-      window.addEventListener('mouseup',end);
-      window.addEventListener('touchcancel',end);
-  }
-  attachHold(document.getElementById('btnUp'), ()=>moveRelative(1,0));
-  attachHold(document.getElementById('btnDown'), ()=>moveRelative(-1,0));
-  attachHold(document.getElementById('btnLeft'), ()=>moveRelative(0,-1));
-  attachHold(document.getElementById('btnRight'), ()=>moveRelative(0,1));
-  attachHold(document.getElementById('btnZoomIn'), ()=>zoomRelative(1));
-  attachHold(document.getElementById('btnZoomOut'), ()=>zoomRelative(-1));
-
-  // Luz, chão e skybox
-  new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
-  const ground = BABYLON.MeshBuilder.CreateGround("ground",{width:1000,height:1000},scene);
-  ground.position.y=-0.05;
-  ground.isPickable=true;
+  
+  camera.attachControl(canvas, true);
+  cameraWasAttached = true;
+  
+  // Iluminação melhorada
+  const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+  hemiLight.intensity = 0.8;
+  
+  const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -1, -1), scene);
+  dirLight.intensity = 0.5;
+  
+  // Chão
+  const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 1000 }, scene);
+  ground.position.y = -0.05;
+  ground.isPickable = true;
+  
   const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
-  groundMat.diffuseColor = new BABYLON.Color3(0.4,0.4,0.4);
-  ground.material=groundMat;
+  groundMat.diffuseColor = new BABYLON.Color3(0.1, 0.15, 0.2);
+  groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+  ground.material = groundMat;
+  
+  // Skybox
+  const skybox = BABYLON.MeshBuilder.CreateSphere("skyBox", { diameter: 1000 }, scene);
+  skybox.isPickable = false;
+  const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
+  skyboxMat.backFaceCulling = false;
+  skyboxMat.diffuseColor = new BABYLON.Color3(0.05, 0.08, 0.12);
+  skybox.material = skyboxMat;
+  
+  // Carregamento do modelo
+  BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
+    NotificationSystem.show("Modelo do estacionamento carregado", "success");
+  });
+  
+  setupInteractions();
+  setupKeyboardControls();
+  if (!isMobile) setupScrollBlocking();
+}
 
-  const skybox=BABYLON.MeshBuilder.CreateBox("skyBox",{size:1000},scene);
-  skybox.isPickable=false;
-  const skyboxMat=new BABYLON.StandardMaterial("skyBoxMat",scene);
-  skyboxMat.backFaceCulling=false;
-  skyboxMat.diffuseColor=new BABYLON.Color3(0,0,0);
-  skyboxMat.specularColor=new BABYLON.Color3(0,0,0);
-  skyboxMat.reflectionTexture=new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/skybox",scene);
-  skyboxMat.reflectionTexture.coordinatesMode=BABYLON.Texture.SKYBOX_MODE;
-  skybox.material=skyboxMat;
+// ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
+function toggleCameraLock() {
+  if (role === 'viewer') {
+    NotificationSystem.show("Apenas operadores podem bloquear a câmera", "warning");
+    return;
+  }
+  
+  const lockBtn = document.getElementById('cameraLockBtn');
+  const lockIcon = document.getElementById('lockIcon');
+  const lockText = document.getElementById('lockText');
+  
+  if (isCameraLocked) {
+    // Desbloquear câmera
+    isCameraLocked = false;
+    camera.attachControl(canvas, true);
+    cameraWasAttached = true;
+    
+    lockBtn.className = 'unlocked';
+    lockIcon.className = 'fas fa-unlock';
+    lockText.textContent = 'Câmera Livre';
+    
+    NotificationSystem.show("Câmera desbloqueada - Navegação livre", "success");
+  } else {
+    // Bloquear câmera na posição atual
+    isCameraLocked = true;
+    
+    // Salvar estado atual
+    savedCameraState = {
+      position: camera.position.clone(),
+      rotation: camera.rotation ? camera.rotation.clone() : null,
+      target: camera.getTarget ? camera.getTarget() : null,
+      alpha: camera.alpha,
+      beta: camera.beta,
+      radius: camera.radius
+    };
+    
+    camera.detachControl(canvas);
+    cameraWasAttached = false;
+    
+    lockBtn.className = 'locked';
+    lockIcon.className = 'fas fa-lock';
+    lockText.textContent = 'Câmera Fixa';
+    
+    NotificationSystem.show("Câmera bloqueada nesta posição", "warning");
+  }
+  
+  updateNavigationHelp();
+}
 
-  BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene);
+// ===== BLOQUEIO DE SCROLL PARA DESKTOP =====
+function setupScrollBlocking() {
+  // Intercepta o wheel para: 1) rotacionar vaga no modo edição; 2) controlar zoom da câmera.
+  canvas.addEventListener('wheel', (e) => {
+    // Evita scroll da página
+    e.preventDefault();
+    e.stopPropagation();
 
-  // --- Funções utilitárias (vagas, carros, firebase) ---
-  function getSizeOf(node){ const bv=node.getHierarchyBoundingVectors(true); return { size: bv.max.subtract(bv.min), bv }; }
-  function criarVagaContorno(pos){ 
-      const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane",{width:VAGA_LARGURA,height:VAGA_COMPRIMENTO},scene); 
-      plane.rotation.x=Math.PI/2; plane.position=pos.clone().add(new BABYLON.Vector3(0,0.01,0)); 
-      const mat=new BABYLON.StandardMaterial("vagaMat",scene); mat.diffuseColor=new BABYLON.Color3(0,1,0); mat.alpha=0.3; plane.material=mat; plane.isPickable=true; 
-      return plane; 
-  }
-  function selecionarVaga(vaga){ vagaSelecionada=vaga; document.getElementById("vagaPanel").style.display="block"; atualizarInterface(); atualizarPainel(); }
-  function encontrarVagaPorMesh(mesh){ return vagas.find(v=>v.mesh===mesh); }
-  function normalizarOrientacao(carroRoot){ 
-      let {size}=getSizeOf(carroRoot); 
-      const minAxis=(size.x<=size.y && size.x<=size.z)?'x':(size.y<=size.x && size.y<=size.z?'y':'z'); 
-      if(minAxis==='z'){ carroRoot.rotate(BABYLON.Axis.X,-Math.PI/2); } 
-      else if(minAxis==='x'){ carroRoot.rotate(BABYLON.Axis.Z,Math.PI/2); } 
-      ({size}=getSizeOf(carroRoot)); 
-      if(size.x>size.z){ carroRoot.rotate(BABYLON.Axis.Y,-Math.PI/2); } 
-  }
-  function posicionarSobreVaga(carroRoot,vagaMesh){ 
-      const {bv}=getSizeOf(carroRoot); 
-      const minY=bv.min.y; 
-      carroRoot.position.x=vagaMesh.position.x; 
-      carroRoot.position.z=vagaMesh.position.z; 
-      carroRoot.position.y=vagaMesh.position.y-minY+0.01; 
-  }
-  function escalarParaVaga(carroRoot){ 
-      const oldRotY=carroRoot.rotation.y; carroRoot.rotation.y=0; 
-      const {size}=getSizeOf(carroRoot); 
-      const sx=VAGA_LARGURA/size.x; 
-      const sy=VAGA_ALTURA/size.y; 
-      const sz=VAGA_COMPRIMENTO/size.z; 
-      const s=Math.min(sx,sy,sz)*MARGEM_ESCALA; 
-      carroRoot.scaling.set(s,s,s); 
-      carroRoot.rotation.y=oldRotY; 
-  }
-
-  async function carregarCarroNormalizado(vaga, modelFile){ 
-      const file = modelFile || CAR_MODELS[Math.floor(Math.random()*CAR_MODELS.length)]; 
-      const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(CAR_BASE_URL, file, scene); 
-      const carroRoot = new BABYLON.TransformNode("carroRoot",scene); 
-      container.meshes.forEach(m=>{if(m.parent==null)m.parent=carroRoot;}); 
-      container.addAllToScene(); 
-      carroRoot.rotationQuaternion=null; 
-      normalizarOrientacao(carroRoot); 
-      escalarParaVaga(carroRoot); 
-      carroRoot.rotation.y=vaga.mesh.rotation.y; 
-      posicionarSobreVaga(carroRoot,vaga.mesh); 
-      return carroRoot; 
-  }
-
-  // adiciona o número visual sobre a vaga (usa BABYLON.GUI)
-  function adicionarNumeroNaVaga(vagaMesh, numero){
-    // evita duplicar se já tiver
-    if(!vagaMesh || vagaMesh._labelPlane) return;
-    const plane = BABYLON.MeshBuilder.CreatePlane("vagaLabelPlane",{size: 2}, scene);
-    // posiciona um pouco acima do chão na mesma coordenada X/Z da vaga
-    plane.position = vagaMesh.position.clone().add(new BABYLON.Vector3(1.3,0.2,3));
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // sempre encara a câmera
-    plane.isPickable = false;
-    plane._parentVagaMesh = vagaMesh; // referência
-    // cria textura GUI para o plano
-    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
-    const tb = new BABYLON.GUI.TextBlock();
-    tb.text = numero;
-    tb.color = "white";
-    tb.fontSize = 500;
-    tb.outlineWidth = 16;
-    tb.outlineColor = "black";
-    tb.fontWeight = "bold";
-    adt.addControl(tb);
-    // guarda referências para controlar depois (ex: mover junto, atualizar texto, remover)
-    vagaMesh._labelPlane = plane;
-    vagaMesh._labelADT = adt;
-    vagaMesh._labelTextBlock = tb;
-  }
-
-  // atualiza/habilita texto se já existir
-function atualizarNumeroVaga(vaga){
-    if(!vaga) return;
-    if(vaga.mesh._labelTextBlock){
-        // Só o número, sem o "VAGA "
-        vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ","");
-    } else if(vaga.numero){
-        adicionarNumeroNaVaga(vaga.mesh, vaga.numero.replace("VAGA ",""));
+    // Se câmera bloqueada, não faz nada com o scroll
+    if (isCameraLocked) {
+      return false;
     }
+
+    // ---------- Caso: estou editando + CTRL + vaga selecionada => rotaciona a vaga ----------
+    if (isEditingMode && isCtrlPressed && vagaSelecionada) {
+      const delta = e.deltaY;
+      const rotationStep = BABYLON.Tools.ToRadians(delta > 0 ? 3 : -3);
+      vagaSelecionada.mesh.rotation.y += rotationStep;
+      updateVagaElements();
+      NotificationSystem.show("Vaga rotacionada", "info", 500);
+      return false;
+    }
+
+    // ---------- Caso: zoom da câmera ----------
+    if (!camera) return false;
+
+    const delta = e.deltaY;
+
+    // Ajustes sensíveis — vá testando esses valores
+    const arcZoomSpeed = 0.1;        // para ArcRotateCamera (afeta radius)
+    const universalZoomFactor = 0.1; // para UniversalCamera (move position)
+
+    // Se for ArcRotateCamera -> altera radius
+    if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+      // delta > 0 -> roda pra baixo (afastar); delta < 0 -> aproximar
+      camera.radius += delta * arcZoomSpeed;
+
+      // garante limites se definidos
+      if (camera.lowerRadiusLimit !== undefined) {
+        if (camera.radius < camera.lowerRadiusLimit) camera.radius = camera.lowerRadiusLimit;
+        if (camera.radius > camera.upperRadiusLimit) camera.radius = camera.upperRadiusLimit;
+      }
+    }
+    // Se for UniversalCamera -> move a câmera ao longo do eixo forward
+    else if (camera.getClassName && camera.getClassName() === "UniversalCamera") {
+      // getDirection espera um vetor local; Axis.Z é o "forward" local
+      let forward = camera.getDirection(BABYLON.Axis.Z);
+      forward.normalize();
+
+      // intenção: scroll pra cima (delta < 0) = aproximar -> mover forward positivo
+      // usamos -delta para que delta negativo aproxime (porque delta é negativo ao scroll up)
+      camera.position.addInPlace(forward.scale(-delta * universalZoomFactor));
+
+      // Mantém a câmera acima do chão (reaplica clamp que tens em scene.registerBeforeRender)
+      const GROUND_Y = -0.05; // ajusta se teu ground tiver outra altura
+      const MIN_Y = GROUND_Y + 1;
+      if (camera.position.y < MIN_Y) camera.position.y = MIN_Y;
+    }
+
+    return false;
+  }, { passive: false, capture: true });
 }
 
 
-  function atualizarFirebase(vaga, id){
-      db.ref('vagas/'+id).set({
-          x: vaga.mesh.position.x,
-          y: vaga.mesh.position.y,
-          z: vaga.mesh.position.z,
-          rotY: vaga.mesh.rotation.y,
-          ocupada: vaga.ocupada,
-          carModel: vaga.carModel || null,
-          numero: vaga.numero || null
-      });
-  }
+// ===== CONTROLES DE TECLADO =====
+function setupKeyboardControls() {
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (!isCtrlPressed) {
+        isCtrlPressed = true;
+        if (!isCameraLocked && camera.inputs) {
+          camera.detachControl(canvas);
+          cameraWasAttached = false;
+          canvas.classList.add('camera-locked');
+        }
+        updateNavigationHelp();
+      }
+    }
+    
+    if (e.key === 'Escape' && isEditingMode) {
+      cancelVagaEdit();
+    }
+    
+    // Teclas rápidas para vistas
+    if (e.key === 'T' || e.key === 't') {
+      setTopView();
+    }
+   // if (e.key === 'I' || e.key === 'i') {
+   //   setIsometricView();
+   // }
+    if (e.key === 'R' || e.key === 'r') {
+      resetCamera();
+    }
+  });
+  
+  window.addEventListener('keyup', (e) => {
+    if (!e.ctrlKey && !e.metaKey) {
+      if (isCtrlPressed) {
+        isCtrlPressed = false;
+        if (!isDragging && !isCameraLocked && camera.inputs) {
+          camera.attachControl(canvas, true);
+          cameraWasAttached = true;
+          canvas.classList.remove('camera-locked');
+        }
+        updateNavigationHelp();
+      }
+    }
+  });
+}
 
-  async function ocuparVagaFirebase(vaga){
-      if(!vaga.ocupada) return;
-      if(vaga.carro) return; 
-      try{
-          if(!vaga.carModel){
-              vaga.carModel = CAR_MODELS[Math.floor(Math.random()*CAR_MODELS.length)];
-              db.ref('vagas/'+vaga.id+'/carModel').set(vaga.carModel);
+// ===== CONTROLES DE CÂMERA MELHORADOS =====
+function resetCamera() {
+  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
+    camera.radius = 80;
+    camera.alpha = -Math.PI/4;
+    camera.beta = Math.PI/3;
+  } else {
+    camera.position = new BABYLON.Vector3(60, 35, -10);
+    camera.rotation.x = Math.PI / 8;
+    camera.rotation.y = 9.8;
+  }
+  NotificationSystem.show("Câmera resetada", "info", 2000);
+}
+
+function setTopView() {
+  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
+    camera.radius = 120;
+    camera.alpha = 0;
+    camera.beta = 0.1; // Quase do topo
+  } else {
+    camera.position = new BABYLON.Vector3(40, 100, 0);
+    camera.rotation.x = Math.PI / 2;
+    camera.rotation.y = 0;
+  }
+  NotificationSystem.show("Vista superior ativada", "info", 2000);
+}
+
+function setIsometricView() {
+  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
+    camera.radius = 100;
+    camera.alpha = -Math.PI/4;
+    camera.beta = Math.PI/4;
+  } else {
+    camera.position = new BABYLON.Vector3(80, 50, 80);
+    camera.rotation.x = Math.PI / 6;
+    camera.rotation.y = -Math.PI / 4;
+  }
+  NotificationSystem.show("Vista isométrica ativada", "info", 2000);
+}
+
+function focusOnSelected() {
+  if (!vagaSelecionada) {
+    NotificationSystem.show("Nenhuma vaga selecionada", "warning", 2000);
+    return;
+  }
+  
+  const target = vagaSelecionada.mesh.position.clone();
+  
+  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(target);
+    camera.radius = 40;
+  } else {
+    const distance = 25;
+    const angle = camera.rotation.y;
+    const height = 15;
+    
+    camera.position.x = target.x + Math.cos(angle) * distance;
+    camera.position.z = target.z + Math.sin(angle) * distance;
+    camera.position.y = target.y + height;
+  }
+  
+  NotificationSystem.show(`Focado na ${vagaSelecionada.numero}`, "info", 2000);
+}
+
+// ===== SISTEMA DE FERRAMENTAS =====
+function toggleTool(toolName) {
+  if (isEditingMode && toolName !== 'edit') {
+    cancelVagaEdit();
+  }
+  
+  document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(toolName + 'Tool').classList.add('active');
+  currentTool = toolName;
+  
+  if (toolName === 'create') {
+    showCreationWizard();
+  } else if (toolName === 'edit') {
+    if (vagaSelecionada && (role === 'admin' || role === 'operator')) {
+      startFreeEdit();
+    } else {
+      NotificationSystem.show("Selecione uma vaga primeiro", "warning");
+    }
+  }
+  
+  NotificationSystem.show(`Ferramenta ${toolName} ativada`, "info", 2000);
+}
+
+// ===== SISTEMA DE EDIÇÃO LIVRE =====
+function startFreeEdit() {
+  if (!vagaSelecionada || isEditingMode) return;
+  
+  isEditingMode = true;
+  
+  originalVagaState = {
+    position: vagaSelecionada.mesh.position.clone(),
+    rotation: vagaSelecionada.mesh.rotation.clone(),
+    numero: vagaSelecionada.numero
+  };
+  
+  if (vagaSelecionada.mesh.material) {
+    vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(1, 0.6, 0);
+  }
+  
+  document.getElementById('quickActions').classList.add('show');
+  updateNavigationHelp();
+  updateVagasList();
+  
+  NotificationSystem.show("Modo edição livre ativado! Use CTRL + Mouse para ajustar", "warning", 4000);
+}
+
+function saveVagaPosition() {
+  if (!isEditingMode || !vagaSelecionada) return;
+  
+  if (vagaSelecionada.id) {
+    atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+  }
+  
+  exitEditMode();
+  NotificationSystem.show(`Posição da ${vagaSelecionada.numero} salva!`, "success");
+}
+
+function cancelVagaEdit() {
+  if (!isEditingMode || !vagaSelecionada || !originalVagaState) {
+    exitEditMode();
+    return;
+  }
+  
+  vagaSelecionada.mesh.position.copyFrom(originalVagaState.position);
+  vagaSelecionada.mesh.rotation.copyFrom(originalVagaState.rotation);
+  vagaSelecionada.numero = originalVagaState.numero;
+  
+  updateVagaElements();
+  
+  exitEditMode();
+  NotificationSystem.show("Alterações canceladas", "info");
+}
+
+function exitEditMode() {
+  isEditingMode = false;
+  originalVagaState = null;
+  
+  if (isDragging) {
+    isDragging = false;
+    canvas.style.cursor = 'default';
+  }
+  
+  if (!isCtrlPressed && !cameraWasAttached && !isCameraLocked && camera.inputs) {
+    camera.attachControl(canvas, true);
+    cameraWasAttached = true;
+    canvas.classList.remove('camera-locked');
+  }
+  
+  if (vagaSelecionada && vagaSelecionada.mesh.material) {
+    const color = vagaSelecionada.ocupada ? new BABYLON.Color3(0.8, 0.2, 0.2) : new BABYLON.Color3(0, 0.8, 0.3);
+    vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(0.3, 0.6, 1);
+  }
+  
+  document.getElementById('quickActions').classList.remove('show');
+  updateNavigationHelp();
+  updateVagasList();
+}
+
+function resetVagaRotation() {
+  if (!isEditingMode || !vagaSelecionada) return;
+  
+  vagaSelecionada.mesh.rotation.y = 0;
+  updateVagaElements();
+  
+  NotificationSystem.show("Rotação resetada", "info", 2000);
+}
+
+function updateVagaElements() {
+  if (!vagaSelecionada) return;
+  
+  if (vagaSelecionada.carro) {
+    vagaSelecionada.carro.rotation.y = vagaSelecionada.mesh.rotation.y;
+    posicionarSobreVaga(vagaSelecionada.carro, vagaSelecionada.mesh);
+  }
+  
+  if (vagaSelecionada.mesh._labelPlane) {
+    vagaSelecionada.mesh._labelPlane.position = vagaSelecionada.mesh.position.clone().add(new BABYLON.Vector3(1.3, 0.2, 3));
+  }
+}
+
+function updateNavigationHelp() {
+  const help = document.getElementById('navigationHelp');
+  
+  if (isCameraLocked) {
+    help.textContent = "🔒 Câmera bloqueada - Use o botão ao lado para liberar";
+    help.classList.add('camera-locked');
+    help.classList.remove('transform-mode', 'ctrl-active');
+  } else if (isEditingMode && isCtrlPressed && vagaSelecionada) {
+    help.textContent = "🎯 Modo Edição: CTRL + Arrastar = Mover | CTRL + Scroll = Girar | ESC = Cancelar";
+    help.classList.add('transform-mode');
+    help.classList.remove('ctrl-active', 'camera-locked');
+  } else if (isEditingMode) {
+    help.textContent = "✏️ Editando vaga: Segure CTRL + Mouse para ajustar posição e rotação";
+    help.classList.add('transform-mode');
+    help.classList.remove('ctrl-active', 'camera-locked');
+  } else if (isCtrlPressed) {
+    help.textContent = "🔒 CTRL ativo: Câmera pausada | Clique na vaga para editar";
+    help.classList.add('ctrl-active');
+    help.classList.remove('transform-mode', 'camera-locked');
+  } else {
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
+    help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
+  }
+}
+
+// ===== CRIAÇÃO DE VAGAS =====
+function showCreationWizard() {
+  document.getElementById('creationWizard').style.display = 'block';
+}
+
+function closeWizard() {
+  document.getElementById('creationWizard').style.display = 'none';
+  pendingPosition = null;
+}
+
+async function createVagasFromWizard() {
+  if (role === 'viewer') {
+    NotificationSystem.show("Sem permissão para criar vagas", "error");
+    return;
+  }
+  
+  const type = document.getElementById('creationType').value;
+  const quantity = parseInt(document.getElementById('vagaQuantity').value);
+  const spacing = parseFloat(document.getElementById('vagaSpacing').value);
+  const orientation = parseFloat(document.getElementById('vagaOrientation').value);
+  
+  if (!pendingPosition) {
+    NotificationSystem.show("Clique no mapa para definir a posição inicial", "warning");
+    return;
+  }
+  
+  const positions = calculatePositions(type, pendingPosition, quantity, spacing);
+  
+  for (let pos of positions) {
+    await createVagaAt(pos, orientation);
+  }
+  
+  NotificationSystem.show(`${quantity} vaga(s) criada(s) com sucesso!`, "success");
+  closeWizard();
+  updateUI();
+}
+
+function calculatePositions(type, startPos, quantity, spacing) {
+  const positions = [];
+  const spaceX = VAGA_LARGURA + spacing;
+  const spaceZ = VAGA_COMPRIMENTO + spacing;
+  
+  switch (type) {
+    case 'single':
+      positions.push(startPos.clone());
+      break;
+      
+    case 'row':
+      for (let i = 0; i < quantity; i++) {
+        positions.push(startPos.clone().add(new BABYLON.Vector3(i * spaceX, 0, 0)));
+      }
+      break;
+      
+    case 'column':
+      for (let i = 0; i < quantity; i++) {
+        positions.push(startPos.clone().add(new BABYLON.Vector3(0, 0, i * spaceZ)));
+      }
+      break;
+      
+    case 'grid':
+      const cols = Math.ceil(Math.sqrt(quantity));
+      const rows = Math.ceil(quantity / cols);
+      for (let i = 0; i < quantity; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        positions.push(startPos.clone().add(new BABYLON.Vector3(col * spaceX, 0, row * spaceZ)));
+      }
+      break;
+  }
+  
+  return positions;
+}
+
+async function createVagaAt(position, rotation = 0) {
+  const mesh = criarVagaContorno(position);
+  mesh.rotation.y = BABYLON.Tools.ToRadians(rotation);
+  
+  const ref = db.ref('vagas').push();
+  const id = ref.key;
+  const numero = `VAGA ${nextVagaNumber++}`;
+  
+  const vaga = {
+    mesh,
+    ocupada: false,
+    carro: null,
+    id,
+    carModel: null,
+    numero
+  };
+  
+  vagas.push(vaga);
+  
+  await ref.set({
+    x: position.x,
+    y: position.y,
+    z: position.z,
+    rotY: mesh.rotation.y,
+    ocupada: false,
+    carModel: null,
+    numero
+  });
+  
+  adicionarNumeroNaVaga(vaga.mesh, numero.replace("VAGA ", ""));
+  return vaga;
+}
+
+// ===== GERENCIAMENTO DE VAGAS =====
+function criarVagaContorno(pos) {
+  const plane = BABYLON.MeshBuilder.CreatePlane("vagaPlane", {
+    width: VAGA_LARGURA,
+    height: VAGA_COMPRIMENTO
+  }, scene);
+  
+  plane.rotation.x = Math.PI / 2;
+  plane.position = pos.clone().add(new BABYLON.Vector3(0, 0.01, 0));
+  
+  const mat = new BABYLON.StandardMaterial("vagaMat", scene);
+  mat.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+  mat.alpha = 0.6;
+  mat.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+  plane.material = mat;
+  plane.isPickable = true;
+  
+  return plane;
+}
+
+function adicionarNumeroNaVaga(vagaMesh, numero) {
+  if (vagaMesh._labelPlane) return;
+  
+  const plane = BABYLON.MeshBuilder.CreatePlane("vagaLabelPlane", { size: 2 }, scene);
+  plane.position = vagaMesh.position.clone().add(new BABYLON.Vector3(1.3, 0.2, 3));
+  plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+  plane.isPickable = false;
+  
+  const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+  const tb = new BABYLON.GUI.TextBlock();
+  tb.text = numero;
+  tb.color = "white";
+  tb.fontSize = 500;
+  tb.outlineWidth = 16;
+  tb.outlineColor = "black";
+  tb.fontWeight = "bold";
+  adt.addControl(tb);
+  
+  vagaMesh._labelPlane = plane;
+  vagaMesh._labelADT = adt;
+  vagaMesh._labelTextBlock = tb;
+}
+
+function selectVaga(vaga) {
+  if (isEditingMode && vagaSelecionada !== vaga) {
+    exitEditMode();
+  }
+  
+  if (vagaSelecionada && vagaSelecionada.mesh.material && !isEditingMode) {
+    const color = vagaSelecionada.ocupada ? new BABYLON.Color3(0.8, 0.2, 0.2) : new BABYLON.Color3(0, 0.8, 0.3);
+    vagaSelecionada.mesh.material.emissiveColor = color.scale(0.3);
+  }
+  
+  vagaSelecionada = vaga;
+  
+  if (vaga && vaga.mesh.material && !isEditingMode) {
+    vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.3, 0.6, 1);
+  }
+  
+  updateVagasList();
+  NotificationSystem.show(`Vaga ${vaga.numero} selecionada`, "info", 2000);
+  
+  if (isCtrlPressed && (role === 'admin' || role === 'operator') && !isEditingMode) {
+    currentTool = 'edit';
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('editTool').classList.add('active');
+    startFreeEdit();
+  }
+}
+
+// ===== OPERAÇÕES DE VAGA =====
+async function ocuparVaga() {
+  if (role === "viewer" || !vagaSelecionada || vagaSelecionada.ocupada) return;
+  
+  vagaSelecionada.ocupada = true;
+  vagaSelecionada.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+
+// Fixar carpo.glb nas vagas 13 e 14
+const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
+if (_num === 13 || _num === 14) {
+  vagaSelecionada.carModel = 'carpo.glb';
+}
+
+
+
+  
+  if (vagaSelecionada.mesh.material) {
+    vagaSelecionada.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+    if (!isEditingMode) {
+      vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+    }
+  }
+  
+  try {
+    const carro = await carregarCarroNormalizado(vagaSelecionada, vagaSelecionada.carModel);
+    vagaSelecionada.carro = carro;
+    
+    if (vagaSelecionada.id) {
+      await atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+    }
+    
+    NotificationSystem.show(`Vaga ${vagaSelecionada.numero} ocupada`, "success");
+  } catch (e) {
+    console.error("Erro ao carregar carro:", e);
+    vagaSelecionada.ocupada = false;
+    vagaSelecionada.carModel = null;
+    NotificationSystem.show("Erro ao ocupar vaga", "error");
+  }
+  
+  updateUI();
+}
+
+function liberarVaga() {
+  if (role === "viewer" || !vagaSelecionada || !vagaSelecionada.ocupada) return;
+  
+  vagaSelecionada.ocupada = false;
+  vagaSelecionada.carModel = null;
+  
+  if (vagaSelecionada.mesh.material) {
+    vagaSelecionada.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+    if (!isEditingMode) {
+      vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+    }
+  }
+  
+  if (vagaSelecionada.carro) {
+    vagaSelecionada.carro.dispose();
+    vagaSelecionada.carro = null;
+  }
+  
+  if (vagaSelecionada.id) {
+    atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
+  }
+  
+  NotificationSystem.show(`Vaga ${vagaSelecionada.numero} liberada`, "success");
+  updateUI();
+}
+
+function deleteVaga() {
+  if (role !== "admin" || !vagaSelecionada) return;
+  
+  if (isEditingMode) exitEditMode();
+  
+  if (vagaSelecionada.carro) {
+    vagaSelecionada.carro.dispose();
+  }
+  
+  if (vagaSelecionada.mesh._labelPlane) {
+    vagaSelecionada.mesh._labelPlane.dispose();
+  }
+  
+  vagaSelecionada.mesh.dispose();
+  
+  if (vagaSelecionada.id) {
+    db.ref('vagas/' + vagaSelecionada.id).remove();
+  }
+  
+  vagas = vagas.filter(v => v !== vagaSelecionada);
+  vagaSelecionada = null;
+  
+  NotificationSystem.show("Vaga excluída", "success");
+  updateUI();
+}
+
+// ===== NOVAS OPERAÇÕES EM LOTE =====
+async function ocuparTodas() {
+  if (role === "viewer") {
+    NotificationSystem.show("Sem permissão para ocupar vagas", "error");
+    return;
+  }
+  
+  const livres = vagas.filter(v => !v.ocupada);
+  
+  if (livres.length === 0) {
+    NotificationSystem.show("Não há vagas livres para ocupar", "warning");
+    return;
+  }
+  
+  if (!confirm(`Tem certeza que deseja ocupar todas as ${livres.length} vagas livres?`)) {
+    return;
+  }
+  
+  let sucessos = 0;
+  
+  for (let vaga of livres) {
+    try {
+      vaga.ocupada = true;
+      vaga.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+
+// Fixar carpo.glb nas vagas 13 e 14
+const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+if (_num === 13 || _num === 14) {
+  vaga.carModel = 'carpo.glb';
+}
+
+
+      
+      if (vaga.mesh.material) {
+        vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+        vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+      }
+      
+      const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+      vaga.carro = carro;
+      
+      if (vaga.id) {
+        await atualizarFirebase(vaga, vaga.id);
+      }
+      
+      sucessos++;
+    } catch (e) {
+      console.error("Erro ao ocupar vaga:", vaga.numero, e);
+    }
+  }
+  
+  NotificationSystem.show(`${sucessos} vagas ocupadas com sucesso!`, "success");
+  updateUI();
+}
+
+async function liberarTodas() {
+  if (role === "viewer") {
+    NotificationSystem.show("Sem permissão para liberar vagas", "error");
+    return;
+  }
+  
+  const ocupadas = vagas.filter(v => v.ocupada);
+  
+  if (ocupadas.length === 0) {
+    NotificationSystem.show("Não há vagas ocupadas para liberar", "warning");
+    return;
+  }
+  
+  if (!confirm(`Tem certeza que deseja liberar todas as ${ocupadas.length} vagas ocupadas?`)) {
+    return;
+  }
+  
+  for (let vaga of ocupadas) {
+    vaga.ocupada = false;
+    vaga.carModel = null;
+    
+    if (vaga.mesh.material) {
+      vaga.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+      vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+    }
+    
+    if (vaga.carro) {
+      vaga.carro.dispose();
+      vaga.carro = null;
+    }
+    
+    if (vaga.id) {
+      await atualizarFirebase(vaga, vaga.id);
+    }
+  }
+  
+  NotificationSystem.show(`${ocupadas.length} vagas liberadas`, "success");
+  updateUI();
+}
+
+async function excluirTodas() {
+  if (role !== "admin") {
+    NotificationSystem.show("Apenas administradores podem excluir todas as vagas", "error");
+    return;
+  }
+  
+  if (vagas.length === 0) {
+    NotificationSystem.show("Não há vagas para excluir", "warning");
+    return;
+  }
+  
+  const confirmText = `EXCLUIR TODAS as ${vagas.length} vagas`;
+  const userInput = prompt(`⚠️ ATENÇÃO! Esta ação é IRREVERSÍVEL!\n\nDigite "${confirmText}" para confirmar:`);
+  
+  if (userInput !== confirmText) {
+    NotificationSystem.show("Operação cancelada", "info");
+    return;
+  }
+  
+  const totalVagas = vagas.length;
+  
+  // Excluir todas as vagas
+  for (let vaga of vagas) {
+    if (vaga.carro) {
+      vaga.carro.dispose();
+    }
+    
+    if (vaga.mesh._labelPlane) {
+      vaga.mesh._labelPlane.dispose();
+    }
+    
+    vaga.mesh.dispose();
+    
+    if (vaga.id) {
+      await db.ref('vagas/' + vaga.id).remove();
+    }
+  }
+  
+  // Limpar arrays
+  vagas = [];
+  vagaSelecionada = null;
+  nextVagaNumber = 1;
+  
+  NotificationSystem.show(`${totalVagas} vagas excluídas permanentemente`, "success");
+  updateUI();
+}
+
+function exportarDados() {
+  const dados = vagas.map(v => ({
+    numero: v.numero,
+    ocupada: v.ocupada,
+    x: v.mesh.position.x,
+    y: v.mesh.position.y,
+    z: v.mesh.position.z,
+    rotacao: v.mesh.rotation.y
+  }));
+  
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `estacionamento_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  
+  URL.revokeObjectURL(url);
+  NotificationSystem.show("Dados exportados", "success");
+}
+
+// ===== SISTEMA DE CARROS =====
+function getSizeOf(node) {
+  const bv = node.getHierarchyBoundingVectors(true);
+  return { size: bv.max.subtract(bv.min), bv };
+}
+
+function normalizarOrientacao(carroRoot) {
+  let { size } = getSizeOf(carroRoot);
+  const minAxis = (size.x <= size.y && size.x <= size.z) ? 'x' : 
+                  (size.y <= size.x && size.y <= size.z ? 'y' : 'z');
+  
+  if (minAxis === 'z') {
+    carroRoot.rotate(BABYLON.Axis.X, -Math.PI / 2);
+  } else if (minAxis === 'x') {
+    carroRoot.rotate(BABYLON.Axis.Z, Math.PI / 2);
+  }
+  
+  ({ size } = getSizeOf(carroRoot));
+  if (size.x > size.z) {
+    carroRoot.rotate(BABYLON.Axis.Y, -Math.PI / 2);
+  }
+}
+
+function posicionarSobreVaga(carroRoot, vagaMesh) {
+  const { bv } = getSizeOf(carroRoot);
+  const minY = bv.min.y;
+  
+  carroRoot.position.x = vagaMesh.position.x;
+  carroRoot.position.z = vagaMesh.position.z;
+  carroRoot.position.y = vagaMesh.position.y - minY + 0.01;
+}
+
+function escalarParaVaga(carroRoot) {
+  const oldRotY = carroRoot.rotation.y;
+  carroRoot.rotation.y = 0;
+  
+  const { size } = getSizeOf(carroRoot);
+  const sx = VAGA_LARGURA / size.x;
+  const sy = VAGA_ALTURA / size.y;
+  const sz = VAGA_COMPRIMENTO / size.z;
+  const s = Math.min(sx, sy, sz) * MARGEM_ESCALA;
+  
+  carroRoot.scaling.set(s, s, s);
+  carroRoot.rotation.y = oldRotY;
+}
+
+async function carregarCarroNormalizado(vaga, modelFile) {
+  const file = modelFile || CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+  
+  const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(CAR_BASE_URL, file, scene);
+  const carroRoot = new BABYLON.TransformNode("carroRoot", scene);
+  
+  container.meshes.forEach(m => {
+    if (m.parent == null) m.parent = carroRoot;
+  });
+  
+  container.addAllToScene();
+  carroRoot.rotationQuaternion = null;
+  
+  normalizarOrientacao(carroRoot);
+  escalarParaVaga(carroRoot);
+  carroRoot.rotation.y = vaga.mesh.rotation.y;
+  posicionarSobreVaga(carroRoot, vaga.mesh);
+  
+  return carroRoot;
+}
+
+// ===== INTERAÇÕES APRIMORADAS =====
+function setupInteractions() {
+  scene.onPointerObservable.add((pointerInfo) => {
+    const evt = pointerInfo.event;
+    
+    switch (pointerInfo.type) {
+      case BABYLON.PointerEventTypes.POINTERDOWN:
+        if (evt.button === 0) {
+          const pick = scene.pick(scene.pointerX, scene.pointerY);
+          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
+          
+          if (pick.hit) {
+            if (currentTool === 'create' && role !== 'viewer') {
+              pendingPosition = pick.pickedPoint.clone();
+              pendingPosition.y += 0.01;
+              
+              if (document.getElementById('creationWizard').style.display === 'none') {
+                showCreationWizard();
+              }
+              
+              NotificationSystem.show("Posição definida. Configure no assistente.", "info");
+              return;
+            }
+            
+            const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
+            if (vaga) {
+              selectVaga(vaga);
+              
+              if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
+                isDragging = true;
+                canvas.style.cursor = 'move';
+                if (cameraWasAttached && !isCameraLocked) {
+                  camera.detachControl(canvas);
+                  cameraWasAttached = false;
+                }
+              }
+            }
           }
+        }
+        break;
+        
+      case BABYLON.PointerEventTypes.POINTERMOVE:
+        if (isDragging && isEditingMode && vagaSelecionada && lastPointerPosition) {
+          const deltaX = scene.pointerX - lastPointerPosition.x;
+          const deltaY = scene.pointerY - lastPointerPosition.y;
+          
+          // Sistema de drag intuitivo melhorado
+          let forward, right;
+          
+          if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
+            const alpha = camera.alpha;
+            forward = new BABYLON.Vector3(-Math.sin(alpha), 0, -Math.cos(alpha));
+            right = new BABYLON.Vector3(Math.cos(alpha), 0, -Math.sin(alpha));
+          } else {
+            const rotation = camera.rotation.clone();
+            forward = new BABYLON.Vector3(
+              Math.sin(rotation.y),
+              0,
+              Math.cos(rotation.y)
+            );
+            right = new BABYLON.Vector3(
+              Math.cos(rotation.y),
+              0,
+              -Math.sin(rotation.y)
+            );
+          }
+          
+          forward.normalize();
+          right.normalize();
+          
+          const sensitivity = 0.012; // Sensibilidade ainda mais ajustada
+          
+          const moveRight = right.scale(deltaX * sensitivity);
+          const moveForward = forward.scale(-deltaY * sensitivity);
+          
+          const totalMovement = moveRight.add(moveForward);
+          vagaSelecionada.mesh.position.addInPlace(totalMovement);
+          
+          updateVagaElements();
+        }
+        
+        if (lastPointerPosition) {
+          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
+        }
+        break;
+        
+      case BABYLON.PointerEventTypes.POINTERUP:
+        if (isDragging) {
+          isDragging = false;
+          canvas.style.cursor = 'default';
+        }
+        lastPointerPosition = null;
+        break;
+    }
+  });
+}
+
+// ===== SISTEMA DE AUTENTICAÇÃO =====
+function login() {
+  const selected = document.getElementById("roleSelect").value;
+  const pass = document.getElementById("userPass").value;
+  
+  if (selected === "viewer") {
+    role = "viewer";
+    NotificationSystem.show("Modo Visualizador ativado", "info");
+  } else if (pass === PASSWORDS[selected]) {
+    role = selected;
+    NotificationSystem.show(`Modo ${role === "admin" ? "Administrador" : "Operador"} ativado`, "success");
+  } else {
+    NotificationSystem.show("Senha incorreta", "error");
+    return;
+  }
+  
+  updateUI();
+  document.getElementById("userPass").value = "";
+}
+
+// ===== INTERFACE DE USUÁRIO =====
+function updateUI() {
+  updateMetrics();
+  updateVagasList();
+  updatePermissions();
+}
+
+function updateMetrics() {
+  const total = vagas.length;
+  const ocupadas = vagas.filter(v => v.ocupada).length;
+  const livres = total - ocupadas;
+  
+  document.getElementById('totalVagas').textContent = total;
+  document.getElementById('vagasLivres').textContent = livres;
+  document.getElementById('vagasOcupadas').textContent = ocupadas;
+}
+
+function updatePermissions() {
+  const roleBadge = document.getElementById('roleBadge');
+  const roleNames = { viewer: 'Usuário', operator: 'Operador', admin: 'Administrador' };
+  
+  roleBadge.textContent = roleNames[role];
+  roleBadge.className = `role-badge role-${role}`;
+  
+  const vagaActions = document.getElementById('vagaActions');
+  const batchActions = document.getElementById('batchActions');
+  const cameraLockBtn = document.getElementById('cameraLockBtn');
+  
+  if (role === 'viewer') {
+    vagaActions.style.display = 'none';
+    batchActions.style.display = 'none';
+    cameraLockBtn.style.display = 'none';
+  } else {
+    vagaActions.style.display = 'block';
+    batchActions.style.display = 'block';
+    cameraLockBtn.style.display = 'block';
+  }
+  
+  ['createTool', 'editTool', 'gridTool'].forEach(toolId => {
+    const tool = document.getElementById(toolId);
+    if (toolId === 'editTool') {
+      tool.style.display = role !== 'viewer' ? 'block' : 'none';
+    } else {
+      tool.style.display = role === 'admin' ? 'block' : 'none';
+    }
+  });
+}
+
+function updateVagasList() {
+  const container = document.getElementById('vagasList');
+  const searchTerm = document.getElementById('vagaSearch').value.toLowerCase();
+  const activeFilter = document.querySelector('.filter-chip.active').dataset.filter;
+  
+  let filteredVagas = vagas.filter(vaga => {
+    const matchesSearch = vaga.numero.toLowerCase().includes(searchTerm);
+    const matchesFilter = activeFilter === 'all' || 
+                         (activeFilter === 'livre' && !vaga.ocupada) ||
+                         (activeFilter === 'ocupada' && vaga.ocupada);
+    return matchesSearch && matchesFilter;
+  });
+  
+  filteredVagas.sort((a, b) => {
+    const numA = parseInt(a.numero.replace('VAGA ', '')) || 0;
+    const numB = parseInt(b.numero.replace('VAGA ', '')) || 0;
+    return numA - numB;
+  });
+  
+  container.innerHTML = '';
+  
+  filteredVagas.forEach(vaga => {
+    const isEditing = isEditingMode && vaga === vagaSelecionada;
+    const item = document.createElement('div');
+    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+    
+    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+    
+    item.innerHTML = `
+      <div class="vaga-header">
+        <div class="vaga-numero">${vaga.numero}</div>
+        <div class="vaga-status ${statusClass}">
+          ${statusText}
+        </div>
+      </div>
+      ${role !== 'viewer' && !isEditing ? `
+        <div class="vaga-actions">
+          <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}'))">
+            <i class="fas fa-eye"></i> Ver
+          </button>
+          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+          </button>
+          ${role !== 'viewer' ? `
+            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+              <i class="fas fa-edit"></i> Editar
+            </button>
+          ` : ''}
+        </div>
+      ` : ''}
+    `;
+    
+    item.addEventListener('click', () => selectVaga(vaga));
+    container.appendChild(item);
+  });
+}
+
+function selectVagaAndEdit(vagaId) {
+  const vaga = vagas.find(v => v.id === vagaId);
+  if (vaga) {
+    selectVaga(vaga);
+    toggleTool('edit');
+  }
+}
+
+async function toggleVagaStatus(vagaId) {
+  const vaga = vagas.find(v => v.id === vagaId);
+  if (!vaga) return;
+  
+  selectVaga(vaga);
+  
+  if (vaga.ocupada) {
+    liberarVaga();
+  } else {
+    await ocuparVaga();
+  }
+}
+
+// ===== FIREBASE SYNC =====
+function atualizarFirebase(vaga, id) {
+  return db.ref('vagas/' + id).set({
+    x: vaga.mesh.position.x,
+    y: vaga.mesh.position.y,
+    z: vaga.mesh.position.z,
+    rotY: vaga.mesh.rotation.y,
+    ocupada: vaga.ocupada,
+    carModel: vaga.carModel || null,
+    numero: vaga.numero || null
+  });
+}
+
+// ===== EVENT LISTENERS =====
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    NotificationSystem.show("Sistema 3D otimizado - Controles intuitivos e bloqueio de câmera disponível", "info", 5000);
+  }, 2000);
+
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      updateVagasList();
+    });
+  });
+  
+  document.getElementById('vagaSearch').addEventListener('input', updateVagasList);
+  
+  if (window.innerWidth <= 1024) {
+    ['controlPanel', 'vagasPanel'].forEach(panelId => {
+      const panel = document.getElementById(panelId);
+      const handle = panel.querySelector('.mobile-handle');
+      
+      handle.addEventListener('click', () => {
+        panel.classList.toggle('expanded');
+      });
+    });
+  }
+  
+  document.getElementById('creationType').addEventListener('change', (e) => {
+    const isSingle = e.target.value === 'single';
+    document.getElementById('quantityGroup').style.display = isSingle ? 'none' : 'block';
+    document.getElementById('spacingGroup').style.display = isSingle ? 'none' : 'block';
+  });
+});
+
+// ===== SYNC FIREBASE =====
+db.ref('vagas').on('value', snapshot => {
+  const data = snapshot.val();
+  
+  if (!data) {
+    vagas.forEach(v => {
+      if (v.mesh) {
+        if (v.mesh._labelPlane) v.mesh._labelPlane.dispose();
+        v.mesh.dispose();
+      }
+    });
+    vagas = [];
+    nextVagaNumber = 1;
+    updateUI();
+    return;
+  }
+  
+  let maxNum = 0;
+  Object.keys(data).forEach(id => {
+    const num = parseInt(data[id].numero?.replace('VAGA ', '')) || 0;
+    if (num > maxNum) maxNum = num;
+  });
+  nextVagaNumber = maxNum + 1;
+  
+  Object.keys(data).forEach(async (id) => {
+    const vData = data[id];
+    let vaga = vagas.find(v => v.id === id);
+    
+    if (!vaga) {
+      const mesh = criarVagaContorno(new BABYLON.Vector3(vData.x, vData.y, vData.z));
+      mesh.rotation.y = vData.rotY || 0;
+      
+      if (vData.ocupada && mesh.material) {
+        mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+        mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+      }
+      
+      const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
+      vaga = {
+        mesh,
+        ocupada: vData.ocupada,
+        carro: null,
+        id,
+        carModel: vData.carModel || null,
+        numero
+      };
+
+	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
+if ((_numCriada === 13 || _numCriada === 14) && vaga.ocupada) {
+  vaga.carModel = 'carpo.glb';
+}
+
+
+      
+      vagas.push(vaga);
+      
+      if (!vData.numero) {
+        db.ref('vagas/' + id + '/numero').set(numero);
+      }
+      
+      adicionarNumeroNaVaga(mesh, numero.replace("VAGA ", ""));
+      
+      if (vaga.ocupada) {
+        try {
           const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
           vaga.carro = carro;
-      }catch(e){ console.error(e); }
-  }
-
-  async function ocuparVaga(){
-      if(role==="viewer"||!vagaSelecionada||vagaSelecionada.ocupada)return;
-      vagaSelecionada.ocupada=true;
-      if(!vagaSelecionada.carModel){
-        vagaSelecionada.carModel = CAR_MODELS[Math.floor(Math.random()*CAR_MODELS.length)];
-      }
-      if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(1,0,0);
-      if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
-      try{
-          const carro=await carregarCarroNormalizado(vagaSelecionada, vagaSelecionada.carModel);
-          vagaSelecionada.carro=carro;
-          // atualiza firebase (inclui numero)
-          if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
-      }catch(e){
-          console.error("Erro ao carregar carro:",e);
-          vagaSelecionada.ocupada=false;
-          vagaSelecionada.carModel=null;
-          if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
-      }
-      atualizarPainel();
-      atualizarListaVagas();
-  }
-
-  function liberarVaga(){
-      if(role==="viewer"||!vagaSelecionada)return;
-      vagaSelecionada.ocupada=false;
-      vagaSelecionada.carModel=null;
-      if(vagaSelecionada.mesh.material)vagaSelecionada.mesh.material.diffuseColor=new BABYLON.Color3(0,1,0);
-      if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
-      if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
-      atualizarPainel();
-      atualizarListaVagas();
-  }
-
-  function rotacionarVaga(angulo){
-      if(role!=="admin"||!vagaSelecionada)return;
-      const rad=BABYLON.Tools.ToRadians(angulo);
-      vagaSelecionada.mesh.rotation.y+=rad;
-      if(vagaSelecionada.carro){
-          vagaSelecionada.carro.rotation.y+=rad;
-          posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
-      }
-      if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada, vagaSelecionada.id);
-  }
-
-  function ativarMover(){ if(role==="admin"&&vagaSelecionada)moverAtivo=true; }
-
-  function deletarVaga(){
-      if(role!=="admin"||!vagaSelecionada)return;
-      if(vagaSelecionada.carro){vagaSelecionada.carro.dispose(); vagaSelecionada.carro=null;}
-      // remove label se existir
-      if(vagaSelecionada.mesh._labelPlane){ vagaSelecionada.mesh._labelPlane.dispose(); vagaSelecionada.mesh._labelPlane = null; }
-      vagaSelecionada.mesh.dispose();
-      if(vagaSelecionada.id) db.ref('vagas/'+vagaSelecionada.id).remove();
-      vagas=vagas.filter(v=>v!==vagaSelecionada);
-      vagaSelecionada=null;
-      document.getElementById("vagaPanel").style.display="none";
-      atualizarPainel();
-      atualizarListaVagas();
-  }
-
-  // extrai número inteiro do texto "VAGA 12" etc
-  function parseNumero(str){ if(!str) return null; const m = (""+str).match(/(\d+)/); return m? parseInt(m[1]) : null; }
-
-  // Lista lateral de vagas
-  function atualizarListaVagas(){
-    const container = document.getElementById("vagaItems");
-    container.innerHTML = "";
-    // Ordena por número (se existir)
-    const ordenadas = [...vagas].sort((a,b)=>{
-      const na = parseNumero(a.numero)||0; const nb = parseNumero(b.numero)||0; return na-nb;
-    });
-    ordenadas.forEach(vaga=>{
-      const item = document.createElement("div");
-      item.className = "vaga-item";
-      const label = document.createElement("span");
-      label.textContent = `${vaga.numero || '-'} - ${vaga.ocupada ? 'Ocupada' : 'Livre'}`;
-      label.style.cursor = 'pointer';
-      label.onclick = ()=>{ selecionarVaga(vaga); };
-      item.appendChild(label);
-      if(role !== 'viewer'){
-        const btn = document.createElement("button");
-        btn.textContent = vaga.ocupada ? "Liberar" : "Ocupar";
-        btn.onclick = ()=> toggleVagaStatus(vaga.id);
-        item.appendChild(btn);
-      }
-      container.appendChild(item);
-    });
-    atualizarPainel();
-  }
-
-  async function toggleVagaStatus(id){
-    const vaga = vagas.find(v => v.id === id);
-    if (!vaga) return;
-    vagaSelecionada = vaga;
-    if (vaga.ocupada) liberarVaga();
-    else await ocuparVaga();
-    atualizarListaVagas();
-  }
-
-  // ==== Firebase sync das vagas ====
-  db.ref('vagas').on('value', snapshot => {
-      const data = snapshot.val();
-      if(!data){
-        // limpa se não tiver vagas
-        vagas.forEach(v=>{ if(v.mesh) { if(v.mesh._labelPlane) v.mesh._labelPlane.dispose(); v.mesh.dispose(); }});
-        vagas = [];
-        nextVagaNumber = 1;
-        atualizarPainel();
-        atualizarListaVagas();
-        return;
-      }
-
-      // calcula o maior número existente para continuar a numeração sequencial
-      let maxNum = 0;
-      Object.keys(data).forEach(id=>{ const n = parseNumero(data[id].numero); if(n && n>maxNum) maxNum=n; });
-      nextVagaNumber = maxNum + 1;
-
-      Object.keys(data).forEach(id => {
-          const vData = data[id];
-          let vaga = vagas.find(v=>v.id===id);
-          if(!vaga){
-              const novaMesh = criarVagaContorno(new BABYLON.Vector3(vData.x,vData.y,vData.z));
-              novaMesh.rotation.y = vData.rotY || 0;
-              if(vData.ocupada && novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-              else if(novaMesh.material) novaMesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-              const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
-              vaga = { mesh: novaMesh, ocupada: vData.ocupada, carro: null, id, carModel: vData.carModel || null, numero };
-              vagas.push(vaga);
-              // garante que o numero exista no DB
-              if(!vData.numero){ db.ref('vagas/'+id+'/numero').set(numero); }
-              // adiciona label 3D
-              atualizarNumeroVaga(vaga);
-              if(vaga.ocupada) ocuparVagaFirebase(vaga);
-          } else {
-              // atualiza posição/estado
-              vaga.mesh.position.x = vData.x;
-              vaga.mesh.position.y = vData.y;
-              vaga.mesh.position.z = vData.z;
-              vaga.mesh.rotation.y = vData.rotY || 0;
-              vaga.ocupada = vData.ocupada;
-              vaga.carModel = vData.carModel || null;
-              vaga.numero = vData.numero || vaga.numero || null;
-              if(vaga.ocupada && vaga.mesh.material) vaga.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-              else if(vaga.mesh.material) vaga.mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-              if(vaga.ocupada && !vaga.carro) ocuparVagaFirebase(vaga);
-              if(!vaga.ocupada && vaga.carro){ vaga.carro.dispose(); vaga.carro=null; }
-              // atualiza label
-              atualizarNumeroVaga(vaga);
-              if(!vData.numero && vaga.numero){ db.ref('vagas/'+id+'/numero').set(vaga.numero); }
-          }
-      });
-      atualizarPainel();
-      atualizarListaVagas();
-  });
-
-  canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
-
-  // Criação via clique (admin) ou toque com long-press
-  scene.onPointerObservable.add(async (pointerInfo)=>{
-      if(pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK) return;
-
-      const pick = pointerInfo.pickInfo; 
-      if(!pick || !pick.hit) return;
-
-      const evt = pointerInfo.event || {};
-      const isTouch = evt.pointerType === "touch";
-
-      // ADMIN → Criar vaga com botão direito em qualquer ponto
-      if(role==='admin' && (evt.button === 2 || (evt.pointerType === "touch" && evt.longPress))){
-          const pos = pick.pickedPoint.clone(); pos.y+=0.01;
-          const mesh = criarVagaContorno(pos);
-          mesh.rotation.y = 0;
-          if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-          const ref = db.ref('vagas').push();
-          const id = ref.key;
-          const numero = `VAGA ${nextVagaNumber++}`;
-          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null, numero };
-          vagas.push(vaga);
-          await ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null, numero });
-          // adiciona label
-          atualizarNumeroVaga(vaga);
-          selecionarVaga(vaga);
-          atualizarPainel();
-          atualizarListaVagas();
-          return;
-      }
-
-      // Movimentação ou seleção de vaga
-      if(moverAtivo && vagaSelecionada){
-          vagaSelecionada.mesh.position=pick.pickedPoint.clone().add(new BABYLON.Vector3(0,0.01,0));
-          if(vagaSelecionada.carro) posicionarSobreVaga(vagaSelecionada.carro,vagaSelecionada.mesh);
-          if(vagaSelecionada.id) atualizarFirebase(vagaSelecionada,vagaSelecionada.id);
-          moverAtivo=false;
-      } else {
-          const pickedMesh = pick.pickedMesh;
-          const vaga = encontrarVagaPorMesh(pickedMesh);
-          if(vaga) selecionarVaga(vaga);
-      }
-  });
-
-  // Toque longo (mobile) para criar vaga
-  let touchTimer = null;
-  canvas.addEventListener("touchstart", (e) => {
-    if(role === "admin"){
-      touchTimer = setTimeout(() => {
-        const pick = scene.pick(scene.pointerX, scene.pointerY);
-        if(pick && pick.hit){
-          const pos = pick.pickedPoint.clone(); pos.y += 0.01;
-          const mesh = criarVagaContorno(pos);
-          mesh.rotation.y = 0;
-          if(mesh.material) mesh.material.diffuseColor = new BABYLON.Color3(0,1,0);
-          const ref = db.ref('vagas').push();
-          const id = ref.key;
-          const numero = `VAGA ${nextVagaNumber++}`;
-          const vaga = { mesh, ocupada:false, carro:null, id, carModel:null, numero };
-          vagas.push(vaga);
-          ref.set({ x: pos.x, y: pos.y, z: pos.z, rotY:0, ocupada:false, carModel:null, numero });
-          atualizarNumeroVaga(vaga);
-          selecionarVaga(vaga);
-          atualizarPainel();
-          atualizarListaVagas();
+        } catch (e) {
+          console.error("Erro ao carregar carro:", e);
         }
-      }, 800); // 800ms = toque longo
+      }
+    } else {
+      vaga.mesh.position.x = vData.x;
+      vaga.mesh.position.y = vData.y;
+      vaga.mesh.position.z = vData.z;
+      vaga.mesh.rotation.y = vData.rotY || 0;
+      
+      const wasOccupied = vaga.ocupada;
+      vaga.ocupada = vData.ocupada;
+      vaga.carModel = vData.carModel || null;
+      vaga.numero = vData.numero || vaga.numero || null;
+	
+	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+if ((_numAtual === 13 || _numAtual === 14) && vaga.ocupada) {
+  vaga.carModel = 'carpo.glb';
+}
+
+
+      
+      if (!isEditingMode || vaga !== vagaSelecionada) {
+        if (vaga.ocupada && vaga.mesh.material) {
+          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+        } else if (vaga.mesh.material) {
+          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+        }
+      }
+      
+            if (vaga.ocupada && !vaga.carro) {
+        try {
+          const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+          vaga.carro = carro;
+        } catch (e) {
+          console.error("Erro ao carregar carro:", e);
+        }
+      } else if (!vaga.ocupada && vaga.carro) {
+        vaga.carro.dispose();
+        vaga.carro = null;
+      }
+      
+      if (vaga.mesh._labelTextBlock) {
+        vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ", "");
+      }
+      
+      if (!vData.numero && vaga.numero) {
+        db.ref('vagas/' + id + '/numero').set(vaga.numero);
+      }
     }
   });
+  
+  updateUI();
+});
 
-  canvas.addEventListener("touchend", (e) => {
-    if(touchTimer){
-      clearTimeout(touchTimer);
-      touchTimer = null;
-    }
+// ===== INICIALIZAÇÃO =====
+initializeScene();
 
-    // Seleção de vaga com toque simples
-    const pick = scene.pick(scene.pointerX, scene.pointerY);
-    if(pick && pick.hit){
-      const vaga = encontrarVagaPorMesh(pick.pickedMesh);
-      if(vaga) selecionarVaga(vaga);
-    }
+engine.runRenderLoop(() => scene.render());
+
+window.addEventListener("resize", () => {
+  engine.resize();
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Toggle do painel mobile
+document.querySelectorAll('#vagasPanel .mobile-handle, #controlPanel .mobile-handle')
+  .forEach(handle => {
+    handle.addEventListener('click', () => {
+      handle.parentElement.classList.toggle('expanded');
+    });
   });
 
-  // Expor pequenas funções de interface global (se quiser usar nos botões)
-  window.ocuparVaga = ocuparVaga;
-  window.liberarVaga = liberarVaga;
-  window.rotacionarVaga = rotacionarVaga;
-  window.ativarMover = ativarMover;
-  window.deletarVaga = deletarVaga;
-  window.toggleVagaStatus = toggleVagaStatus;
-  window.login = login;
 
-  engine.runRenderLoop(()=>scene.render());
-  window.addEventListener("resize",()=>{
-    engine.resize();
-  });
+
+// ===== EXPOSIÇÃO DE FUNÇÕES GLOBAIS =====
+window.login = login;
+window.toggleTool = toggleTool;
+window.showCreationWizard = showCreationWizard;
+window.closeWizard = closeWizard;
+window.createVagasFromWizard = createVagasFromWizard;
+window.startFreeEdit = startFreeEdit;
+window.saveVagaPosition = saveVagaPosition;
+window.cancelVagaEdit = cancelVagaEdit;
+window.resetVagaRotation = resetVagaRotation;
+window.ocuparVaga = ocuparVaga;
+window.liberarVaga = liberarVaga;
+window.deleteVaga = deleteVaga;
+window.ocuparTodas = ocuparTodas;
+window.liberarTodas = liberarTodas;
+window.excluirTodas = excluirTodas;
+window.exportarDados = exportarDados;
+window.toggleVagaStatus = toggleVagaStatus;
+window.selectVaga = selectVaga;
+window.selectVagaAndEdit = selectVagaAndEdit;
+window.resetCamera = resetCamera;
+window.focusOnSelected = focusOnSelected;
+window.setTopView = setTopView;
+window.setIsometricView = setIsometricView;
+window.toggleCameraLock = toggleCameraLock;
+
 </script>
 </body>
 </html>
