@@ -860,14 +860,37 @@
 <!-- Controles Mobile -->
 <div id="mobileControls" class="glass-panel">
   <div class="row">
-    <button onclick="moveCamera('forward')">▲</button>
+    <button 
+      onmousedown="moveCamera('forward', true)" 
+      onmouseup="stopMoveCamera()" 
+      onmouseleave="stopMoveCamera()" 
+      ontouchstart="moveCamera('forward', true)" 
+      ontouchend="stopMoveCamera()">▲</button>
   </div>
   <div class="row">
-    <button onclick="moveCamera('left')">◀</button>
-    <button onclick="moveCamera('back')">▼</button>
-    <button onclick="moveCamera('right')">▶</button>
+    <button 
+      onmousedown="moveCamera('left', true)" 
+      onmouseup="stopMoveCamera()" 
+      onmouseleave="stopMoveCamera()" 
+      ontouchstart="moveCamera('left', true)" 
+      ontouchend="stopMoveCamera()">◀</button>
+
+    <button 
+      onmousedown="moveCamera('back', true)" 
+      onmouseup="stopMoveCamera()" 
+      onmouseleave="stopMoveCamera()" 
+      ontouchstart="moveCamera('back', true)" 
+      ontouchend="stopMoveCamera()">▼</button>
+
+    <button 
+      onmousedown="moveCamera('right', true)" 
+      onmouseup="stopMoveCamera()" 
+      onmouseleave="stopMoveCamera()" 
+      ontouchstart="moveCamera('right', true)" 
+      ontouchend="stopMoveCamera()">▶</button>
   </div>
 </div>
+
 
 
 
@@ -2027,14 +2050,36 @@ function setupInteractions() {
   });
 }
 
-function moveCamera(dir) {
+let moveInterval = null;
+
+function moveCamera(dir, continuous = false) {
   if (!camera) return;
-  const step = 2;
-  switch(dir){
-    case 'forward': camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(step)); break;
-    case 'back': camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-step)); break;
-    case 'left': camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(-step)); break;
-    case 'right': camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step)); break;
+  const step = 4; // passo maior que antes (antes era 2)
+
+  switch (dir) {
+    case 'forward':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(step));
+      break;
+    case 'back':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-step));
+      break;
+    case 'left':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(-step));
+      break;
+    case 'right':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
+      break;
+  }
+
+  if (continuous && !moveInterval) {
+    moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
+  }
+}
+
+function stopMoveCamera() {
+  if (moveInterval) {
+    clearInterval(moveInterval);
+    moveInterval = null;
   }
 }
 
