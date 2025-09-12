@@ -136,6 +136,7 @@
     .tool-grid {
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 8px;
+
     }
 
     .tool-btn, .action-btn {
@@ -457,11 +458,12 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 100px; right: 20px;
+      position: fixed; top: 200px; right: 20px;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 12px; padding: 16px;
+      z-index: 4000;
       color: #e2e8f0; z-index: 100;
       max-width: 350px; opacity: 0;
       transform: translateX(100%);
@@ -479,43 +481,81 @@
 
     /* ===== MOBILE OPTIMIZATIONS ===== */
 @media (max-width: 1024px) {
+
+  /* Esconde a parte de autenticação */
+  .auth-section {
+    display: none !important;
+  }
    
-#smartDashboard { 
-    position: fixed;  /* fica fixo no topo */
-    top: 0; left: 0; right: 0;
+   #smartDashboard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    padding: 0 20px;
     display: flex;
-    flex-direction: row; 
+    gap: 16px;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    height: 60px;
-    padding: 8px 10px;
-    gap: 8px;
-    z-index: 60; /* acima dos painéis */
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .brand {
+    font-size: 60px; /* mais destaque */
+    font-weight: bold;
+    justify-content: center;
   }
 
   .dashboard-section { 
+    display: flex;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap; 
-    gap: 8px;
+    gap: 30px;
   }
 
+ #vagasPanel {
+ display: none !important;
+}
+
   /* Painéis laterais compactos */
-  #controlPanel, #vagasPanel {
+  #controlPanel {
     position: absolute;
-    top: 100px;
-    max-height: calc(100vh - 120px);
+    top: 250px;
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
-    padding: 12px; /* menor que desktop */
+    padding: 10px; /* menor que desktop */
   }
 
   #controlPanel {
+justify-content: center;
+justify-items: center;
     right: 10px;
-    width: 220px; /* reduzido */
+    width: 140px; /* reduzido */
   }
+
+#cameraControls .tool-grid {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+#selectTool {
+  grid-column: span 2;   /* ocupa as duas colunas */
+  justify-self: center;  /* centraliza dentro da grid */
+}
+
 
   #vagasPanel {
     left: 10px;
     width: 200px; /* reduzido */
+  }
+
+  .metrics-grid {
+    justify-content: center;
+    width: 100%;
+    gap:6px;
   }
 
   /* Elementos menores */
@@ -531,15 +571,16 @@
   .vaga-numero { font-size: 12px; }
   .vaga-status { font-size: 10px; }
 
-  .metric-card { min-width: 80px; padding: 8px; }
-  .metric-value { font-size: 18px; }
-  .metric-label { font-size: 10px; }
+  .metric-card { min-width: 180px; padding: 5px 18px; }
+  .metric-value { font-size: 20px; }
+  .metric-label { font-size: 15px; }
 
   /* Esconde só o que não faz sentido no mobile */
   .mobile-handle { display: none; }
   #navigationHelp, #quickActions, #cameraLockBtn {
     display: none !important;
   }
+
 }
 
 
@@ -622,6 +663,63 @@
 @media(min-width:1025px){
   #mobileControls { display: none; }
 }
+
+/* === HAMBURGUER + PAINEL MOBILE === */
+.hamburger {
+  display: none;                /* escondido no desktop */
+  background: rgba(51,65,85,0.6);
+  border: 1px solid rgba(148,163,184,0.15);
+  color: #e2e8f0;
+  font-size: 20px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  position: absolute;
+  right: 16px;
+  top: 18px;
+  z-index: 400;
+}
+
+/* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
+@media (max-width: 1024px) {
+  .hamburger { display: block; }
+  #controlPanel { display: none !important; } /* mantemos escondido por padrão */
+}
+
+/* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
+#controlPanel.mobile-open {
+  position: absolute;
+  top: 70px;           /* fica abaixo do cabeçalho */
+  right: 8px;
+  width: 92%;
+  max-width: 420px;
+  max-height: 72vh;
+  overflow-y: auto;
+  display: block !important;   /* precisa sobrescrever o display:none !important */
+  z-index: 380;
+  transform-origin: top right;
+  transform: translateY(-6px);
+  transition: transform 160ms ease, opacity 160ms ease;
+  opacity: 1;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+}
+
+/* efeito: quando abrir, faz um pequeno slide */
+#controlPanel.mobile-open.showing {
+  transform: translateY(0);
+}
+
+/* para fechar suavemente (opcional) */
+#controlPanel.mobile-open.hiding {
+  transform: translateY(-8px);
+  opacity: 0;
+}
+
+/* pequenos ajustes para não quebrar layout do painel */
+@media (max-width: 420px) {
+  #controlPanel.mobile-open { right: 6px; width: calc(100% - 12px); top: 66px; }
+}
+
 
 
   </style>
@@ -778,6 +876,13 @@
     </div>
   </div>
 
+<!-- Botão hamburguer (apenas mobile) -->
+<button id="hamburgerBtn" class="hamburger" aria-label="Abrir menu">
+  <i class="fas fa-bars"></i>
+</button>
+
+
+
   <!-- Vagas Panel -->
   <div id="vagasPanel" class="glass-panel">
     <div class="mobile-handle"></div>
@@ -857,44 +962,8 @@
     <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
   </div>
 
-<!-- Controles Mobile -->
-<div id="mobileControls" class="glass-panel">
-  <div class="row">
-    <button 
-      onmousedown="moveCamera('forward', true)" 
-      onmouseup="stopMoveCamera()" 
-      onmouseleave="stopMoveCamera()" 
-      ontouchstart="moveCamera('forward', true)" 
-      ontouchend="stopMoveCamera()">▲</button>
-  </div>
-  <div class="row">
-    <button 
-      onmousedown="moveCamera('left', true)" 
-      onmouseup="stopMoveCamera()" 
-      onmouseleave="stopMoveCamera()" 
-      ontouchstart="moveCamera('left', true)" 
-      ontouchend="stopMoveCamera()">◀</button>
-
-    <button 
-      onmousedown="moveCamera('back', true)" 
-      onmouseup="stopMoveCamera()" 
-      onmouseleave="stopMoveCamera()" 
-      ontouchstart="moveCamera('back', true)" 
-      ontouchend="stopMoveCamera()">▼</button>
-
-    <button 
-      onmousedown="moveCamera('right', true)" 
-      onmouseup="stopMoveCamera()" 
-      onmouseleave="stopMoveCamera()" 
-      ontouchstart="moveCamera('right', true)" 
-      ontouchend="stopMoveCamera()">▶</button>
-  </div>
-</div>
-
-
-
-
 <script>
+
 // ===== CONFIGURAÇÃO E INICIALIZAÇÃO =====
 const firebaseConfig = {
   apiKey: "AIzaSyAE8AgqS_rpQygvmO6ugTX5yQSjQDwJ0vk",
@@ -985,17 +1054,14 @@ function initializeScene() {
   
   // Câmera mais intuitiva
 if (isMobile) {
-  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(68, 80, -15), scene);
+  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(60, 100, 10), scene);
   camera.attachControl(canvas, true);
-  camera.rotation.x = Math.PI / 5;
-  camera.rotation.y = 10.5;
 
-  // controles de toque
-  camera.inputs.addTouch(); 
-  camera.speed = 4; 
-  camera.angularSensibility = 800;
+  // Rotação inicial (ângulos ajustados para ver o estacionamento)
+  camera.rotation.x = Math.PI / 5;  // inclinação pra baixo
+  camera.rotation.y =10.6;         // rotação lateral (ajusta até ficar igual à foto)
 
-  // limitar altura
+  // Limitar altura para não afundar
   scene.onBeforeRenderObservable.add(() => {
     if (camera.position.y < 2) camera.position.y = 2;
   });
@@ -2451,6 +2517,64 @@ window.focusOnSelected = focusOnSelected;
 window.setTopView = setTopView;
 window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
+
+
+document.addEventListener("DOMContentLoaded", function() {
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const controlPanel = document.getElementById("controlPanel");
+
+  if (!hamburgerBtn) {
+    console.warn("hamburgerBtn não encontrado — verifique se o HTML foi inserido dentro de #smartDashboard");
+    return;
+  }
+  if (!controlPanel) {
+    console.warn("controlPanel não encontrado — verifique se existe elemento com id='controlPanel'");
+    return;
+  }
+
+  // Toggle com classe e animação
+  hamburgerBtn.addEventListener("click", (e) => {
+    // Se painel já aberto, inicia closing animation
+    if (controlPanel.classList.contains("mobile-open")) {
+      controlPanel.classList.add("hiding");
+      setTimeout(()=> {
+        controlPanel.classList.remove("mobile-open", "showing", "hiding");
+      }, 180);
+    } else {
+      controlPanel.classList.add("mobile-open");
+      // força reflow para transição
+      void controlPanel.offsetWidth;
+      controlPanel.classList.add("showing");
+    }
+  });
+
+  // fechar ao clicar fora (apenas quando aberto)
+  document.addEventListener("click", (ev) => {
+    if (!controlPanel.classList.contains("mobile-open")) return;
+    const target = ev.target;
+    if (target === hamburgerBtn || controlPanel.contains(target)) return;
+    controlPanel.classList.add("hiding");
+    setTimeout(()=> {
+      controlPanel.classList.remove("mobile-open", "showing", "hiding");
+    }, 180);
+  });
+
+  // ESC fecha
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && controlPanel.classList.contains("mobile-open")) {
+      controlPanel.classList.add("hiding");
+      setTimeout(()=> {
+        controlPanel.classList.remove("mobile-open", "showing", "hiding");
+      }, 120);
+    }
+  });
+
+  // DEBUG helper: se quiser verificar no console
+  // console.log("hamburger ready", hamburgerBtn, controlPanel);
+});
+
+
+
 
 </script>
 </body>
