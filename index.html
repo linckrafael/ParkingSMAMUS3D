@@ -47,17 +47,19 @@
 
     /* ===== HEADER DASHBOARD ===== */
     #smartDashboard {
-      top: 20px; left: 20px; right: 20px; height: 80px;
+      top: 20px; left: 20px; right: 20px;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 24px;
+      gap:24px;
     }
 
     .dashboard-section {
       display: flex; align-items: center; gap: 24px;
+      
     }
 
     .brand {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 30px;
       font-size: 30px;
       font-weight: 700;
       white-space: wrap;
@@ -68,7 +70,9 @@
 
     .metrics-grid {
       display: flex;
-      gap: 8px;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .metric-card {
@@ -76,33 +80,31 @@
       border: 1px solid rgba(59, 130, 246, 0.2);
       border-radius: 12px; padding: 12px 16px;
       text-align: center; min-width: 100px;
-      padding: 4px 6px;
       min-width: auto;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
     }
 
     .metric-value {
-      font-size: 24px; font-weight: 700;
+      font-size: 30px; font-weight: 700;
       background: linear-gradient(135deg, #3b82f6, #06b6d4);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 20px; opacity: 0.8; margin-top: 4px;
+      font-size: 30px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
+
     }
 
      .auth-section {
     display: flex;
     flex-direction: row; 
-    gap: 6px;
+    gap: 10px;
+    align-items: center;
   }
 
 #roleSelect, #userPass {
-   font-size: 11px;
+   font-size: 12px;
     padding: 4px 6px;
     width: auto;
     min-width: 80px;
@@ -494,11 +496,11 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 180px;
-    padding: 0 20px;
+    height: autopx;
+    padding: 20px;
     display: flex;
     gap: 16px;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1000;
@@ -511,11 +513,7 @@
   }
 
   .dashboard-section { 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap; 
-    gap: 30px;
+    display: none;
   }
 
  #vagasPanel {
@@ -679,7 +677,7 @@ justify-items: center;
   position: absolute;
   right: 16px;
   top: 18px;
-  z-index: 400;
+  z-index: 4000;
 }
 
 /* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
@@ -730,42 +728,42 @@ justify-items: center;
   <canvas id="renderCanvas"></canvas>
   
   <!-- Smart Dashboard Header -->
-  <div id="smartDashboard" class="glass-panel">
-    <div class="dashboard-section">
-      <div class="brand">
-        <i class="fas fa-cube"></i>
-        SMAMUS 3D
-      </div>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-value" id="totalVagas">0</div>
-          <div class="metric-label">Total</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-value" id="vagasLivres">0</div>
-          <div class="metric-label">Livres</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-value" id="vagasOcupadas">0</div>
-          <div class="metric-label">Ocupadas</div>
-        </div>
-      </div>
+<div id="smartDashboard" class="glass-panel">
+  <div class="brand">
+    <i class="fas fa-cube"></i>
+    SMAMUS 3D
+  </div>
+  
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-value" id="totalVagas">0</div>
+      <div class="metric-label">Total</div>
     </div>
-    <div class="dashboard-section">
-      <div class="auth-section">
-        <div id="roleBadge" class="role-badge role-viewer">Usuário</div>
-        <select id="roleSelect" class="wizard-select" style="width: auto;">
-          <option value="viewer">Usuário</option>
-          <option value="operator">Operador</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <input type="password" id="userPass" class="wizard-input" placeholder="Senha" style="width: 120px;"/>
-        <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
-          <i class="fas fa-sign-in-alt"></i>
-        </button>
-      </div>
+    <div class="metric-card">
+      <div class="metric-value" id="vagasLivres">0</div>
+      <div class="metric-label">Livres</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="vagasOcupadas">0</div>
+      <div class="metric-label">Ocupadas</div>
     </div>
   </div>
+
+  <div class="dashboard-section">
+    <div class="auth-section">
+      <div id="roleBadge" class="role-badge role-viewer">Usuário</div>
+      <select id="roleSelect" class="wizard-select" style="width: auto;">
+        <option value="viewer">Usuário</option>
+        <option value="operator">Operador</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <input type="password" id="userPass" class="wizard-input" placeholder="Senha" style="width: 120px;"/>
+      <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
+        <i class="fas fa-sign-in-alt"></i>
+      </button>
+    </div>
+  </div>
+</div>
 
   <!-- Botão de Bloqueio de Câmera -->
   <div id="cameraLockBtn" class="unlocked" onclick="toggleCameraLock()">
@@ -1059,10 +1057,10 @@ if (isMobile) {
   // ArcRotateCamera estilo Google Maps 3D
   camera = new BABYLON.ArcRotateCamera(
     "mobileCam",
-    BABYLON.Tools.ToRadians(90), // ângulo inicial horizontal
-    BABYLON.Tools.ToRadians(40),   // ângulo inicial vertical
+    BABYLON.Tools.ToRadians(145), // ângulo inicial horizontal
+    BABYLON.Tools.ToRadians(60),   // ângulo inicial vertical
     120,                           // distância inicial
-    new BABYLON.Vector3(-60, 80, 0), // alvo (centro do estacionamento)
+    new BABYLON.Vector3(-150, 20, -10), // alvo (centro do estacionamento)
     scene
   );
 
@@ -1070,16 +1068,16 @@ if (isMobile) {
 
 
   // ===== Configurações de sensibilidade =====
-  camera.panningSensibility = 50;      // arrastar com dois dedos = pan
-  camera.angularSensibilityX = 600;    // rotação horizontal suave
-  camera.angularSensibilityY = 600;    // rotação vertical suave
-  camera.pinchPrecision = 200;         // zoom com pinça mais suave
-  camera.wheelPrecision = 50;          // zoom com scroll
+  camera.panningSensibility = 150;      // arrastar com dois dedos = pan
+  camera.angularSensibilityX = 2000;    // rotação horizontal suave
+  camera.angularSensibilityY = 2000;    // rotação vertical suave
+  camera.pinchPrecision = 2000;         // zoom com pinça mais suave
+  camera.wheelPrecision = 2;          // zoom com scroll
 
   // ===== Limites =====
-  camera.lowerBetaLimit = BABYLON.Tools.ToRadians(10);  // não deixar "atravessar o chão"
+  camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não deixar "atravessar o chão"
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);  // limite do olhar de cima
-  camera.lowerRadiusLimit = 30;    // distância mínima
+  camera.lowerRadiusLimit = 0;    // distância mínima
   camera.upperRadiusLimit = 300;   // distância máxima
 
   // ===== Movimento de pan =====
