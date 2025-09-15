@@ -1056,9 +1056,9 @@ function initializeScene() {
   
   // Câmera mais intuitiva
 if (isMobile) {
-  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(68, 80, -15), scene);
+  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(68, 140, 10), scene);
   camera.attachControl(canvas, true);
-    camera.rotation.x = Math.PI / 5;
+    camera.rotation.x = Math.PI / 4.5;
     camera.rotation.y = 10.5;
 
   // velocidade base
