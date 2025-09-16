@@ -1054,35 +1054,29 @@ function initializeScene() {
   
   // Câmera mais intuitiva
 if (isMobile) {
-  // ArcRotateCamera estilo Google Maps 3D
-  camera = new BABYLON.ArcRotateCamera(
-    "mobileCam",
-    BABYLON.Tools.ToRadians(145), // ângulo inicial horizontal
-    BABYLON.Tools.ToRadians(60),   // ângulo inicial vertical
-    120,                           // distância inicial
-    new BABYLON.Vector3(-150, 20, -10), // alvo (centro do estacionamento)
-    scene
-  );
-
+  // Câmera livre estilo Google Maps 3D
+  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(70, 140, -10), scene);
+  camera.setTarget(BABYLON.Vector3.Zero());
   camera.attachControl(canvas, true);
+  camera.rotation.x = Math.PI / 5;
+  camera.rotation.y = 10.8;
 
+  // Sensibilidade de toque
+  camera.speed = 2;                      // velocidade de movimento
+  camera.angularSensibility = 3000;      // rotação mais suave
+  camera.inertia = 0.7;                  // movimento mais fluido
+  camera.touchAngularSensibility = 4000; // rotação com um dedo
+  camera.touchMoveSensibility = 250;     // pan com dois dedos
 
-  // ===== Configurações de sensibilidade =====
-  camera.panningSensibility = 150;      // arrastar com dois dedos = pan
-  camera.angularSensibilityX = 2000;    // rotação horizontal suave
-  camera.angularSensibilityY = 2000;    // rotação vertical suave
-  camera.pinchPrecision = 2000;         // zoom com pinça mais suave
-  camera.wheelPrecision = 2;          // zoom com scroll
+  // Zoom por pinça
+  camera.inputs.addMouseWheel();
+  camera.wheelPrecision = 50;
 
-  // ===== Limites =====
-  camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não deixar "atravessar o chão"
-  camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);  // limite do olhar de cima
-  camera.lowerRadiusLimit = 0;    // distância mínima
-  camera.upperRadiusLimit = 300;   // distância máxima
-
-  // ===== Movimento de pan =====
-  camera.panningInertia = 0.8;       // inércia suave
-  camera.panningSensibility = 60;    // sensibilidade ao arrastar com dois dedos
+  // Mantém a câmera acima do chão
+  const MIN_Y = 1;
+  scene.registerBeforeRender(() => {
+    if (camera.position.y < MIN_Y) camera.position.y = MIN_Y;
+  });
 }  else {
     // Desktop: Universal Camera mais intuitiva
     camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
