@@ -720,6 +720,31 @@ justify-items: center;
   #controlPanel.mobile-open { right: 6px; width: calc(100% - 12px); top: 66px; }
 }
 
+#mobileHelp {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e2e8f0;
+  text-align: center;
+  z-index: 1200;
+  animation: fadeIn 0.5s ease;
+}
+
+@media (min-width: 1025px) {
+  #mobileHelp {
+    display: none; /* só aparece no mobile */
+  }
+}
+
+
 
 
   </style>
@@ -961,6 +986,14 @@ justify-items: center;
     <i class="fas fa-info-circle"></i>
     <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
   </div>
+
+<!-- Ajuda de Navegação no Mobile -->
+<div id="mobileHelp">
+  <i class="fas fa-hand-pointer"></i> Use <b>1 dedo</b> para girar<br>
+  <i class="fas fa-hand-peace"></i> Use <b>2 dedos</b> para mover<br>
+  <i class="fas fa-search-plus"></i> Faça <b>pinça</b> para zoom
+</div>
+
 
 <script>
 
