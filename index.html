@@ -28,11 +28,11 @@
 
     /* ===== GLASSMORPHISM BASE ===== */
     .glass-panel {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(0, 68, 5, 0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
       border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 16px;
+      border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
       color: #e2e8f0;
@@ -49,8 +49,8 @@
     #smartDashboard {
       top: 20px; left: 20px; right: 20px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px;
-      gap:24px;
+      padding: 0px 24px;
+      gap:10px;
     }
 
     .dashboard-section {
@@ -63,7 +63,7 @@
       font-size: 30px;
       font-weight: 700;
       white-space: wrap;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      background: linear-gradient(135deg, #039403, #00FF55, #039403);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -76,8 +76,8 @@
     }
 
     .metric-card {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
+      background: rgba(51, 165, 85, 0.1);
+      border: 1px solid rgba(36, 246, 71, 0.2);
       border-radius: 12px; padding: 12px 16px;
       text-align: center; min-width: 100px;
       min-width: auto;
@@ -85,7 +85,7 @@
 
     .metric-value {
       font-size: 30px; font-weight: 700;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -104,25 +104,25 @@
   }
 
 #roleSelect, #userPass {
-   font-size: 12px;
-    padding: 4px 6px;
+   font-size: 16px;
+    padding: 8px 12px;
     width: auto;
     min-width: 80px;
   }
 
     .role-badge {
-      padding: 6px 12px; border-radius: 20px;
+      padding: 8px 12px; border-radius: 20px;
       font-size: 12px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     .role-viewer { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
-    .role-operator { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .role-operator { background: rgba(51, 165, 85, 0.3); color: #23fa47; }
     .role-admin { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
     /* ===== CONTROLES LATERAIS ===== */
     #controlPanel {
-      top: 120px; right: 20px; width: 320px;
+      top: 170px; right: 20px; width: 320px;
       max-height: calc(100vh - 140px);
       padding: 20px; overflow-y: auto;
     }
@@ -133,7 +133,7 @@
 
     .section-title {
       font-size: 14px; font-weight: 600; margin-bottom: 12px;
-      color: #94a3b8; text-transform: uppercase;
+      color: #67cd64; text-transform: uppercase;
       letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
     }
 
@@ -144,7 +144,7 @@
     }
 
     .tool-btn, .action-btn {
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.6);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 12px;
       border-radius: 10px; cursor: pointer;
@@ -156,8 +156,8 @@
       padding: 4px 8px !important;
     }
 
-    .tool-btn:hover, .action-btn:hover {
-      background: rgba(59, 130, 246, 0.3);
+    .tool-btn:hover, .action-btn:hover, .tool-btn.active:hover {
+      background: rgba(251, 255, 18, 0.5);
       border-color: rgba(59, 130, 246, 0.5);
       transform: translateY(-2px);
     }
@@ -167,8 +167,8 @@
     }
 
     .tool-btn.active {
-      background: rgba(59, 130, 246, 0.4);
-      border-color: #3b82f6;
+      background: rgba(51, 165, 85, 0.4);
+      border-color: #003e04;
     }
 
     .tool-btn i, .action-btn i {
@@ -178,7 +178,7 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 120px; right: 360px;
+      top: 130px; right: 360px;
       background: rgba(51, 65, 85, 0.8);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 12px;
@@ -208,13 +208,13 @@
 
     /* ===== VAGAS PANEL ===== */
     #vagasPanel {
-      top: 120px; left: 20px; width: 300px;
+      top: 170px; left: 20px; width: 300px;
       max-height: calc(100vh - 140px);
       padding: 20px; overflow-y: auto;
     }
 
     .vaga-search {
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.2);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 10px 12px;
       border-radius: 8px; width: 100%;
@@ -235,31 +235,31 @@
       padding: 6px 12px; border-radius: 16px;
       font-size: 12px; cursor: pointer;
       transition: all 0.2s ease;
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.6);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #94a3b8;
     }
 
     .filter-chip:hover, .filter-chip.active {
-      background: rgba(59, 130, 246, 0.3);
-      border-color: #3b82f6; color: #3b82f6;
+      background: rgba(51, 165, 86, 0.3);
+      border-color: #41ff46; color: #ffffff;
     }
 
     .vaga-item {
-      background: rgba(51, 65, 85, 0.4);
+      background: rgba(51, 13:25 17/09/202565, 85, 0.4);
       border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 10px; padding: 12px; margin-bottom: 8px;
       cursor: pointer; transition: all 0.2s ease;
     }
 
     .vaga-item:hover {
-      background: rgba(59, 130, 246, 0.1);
-      border-color: rgba(59, 130, 246, 0.3);
+      background: rgba(251, 255, 18, 0.1);
+      border-color: rgba(65, 230, 70, 0.3);
     }
 
     .vaga-item.selected {
       background: rgba(59, 130, 246, 0.2);
-      border-color: #3b82f6;
+      border-color: #00fb00;
     }
 
     .vaga-item.editing {
@@ -308,8 +308,8 @@
     }
 
     .mini-btn:hover {
-      background: rgba(59, 130, 246, 0.3);
-      color: #3b82f6;
+      background: rgba(251, 255, 18, 0.3);
+      color: #fffff6;
     }
 
     /* ===== CREATION WIZARD ===== */
@@ -389,7 +389,7 @@
       backdrop-filter: blur(10px);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 12px; padding: 12px 16px;
-      color: #94a3b8; font-size: 12px;
+      color: #e7ffe9; font-size: 12px;
       z-index: 10; opacity: 0.8;
       transition: all 0.3s ease;
     }
@@ -462,13 +462,13 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 200px; right: 20px;
-      background: rgba(15, 23, 42, 0.95);
+      position: fixed; top: 120px; right: 20px;
+      background: rgba(51, 165, 85, 0.3);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 12px; padding: 16px;
       z-index: 4000;
-      color: #e2e8f0; z-index: 100;
+      color: #e7ffe9; z-index: 100;
       max-width: 350px; opacity: 0;
       transform: translateX(100%);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -481,7 +481,7 @@
     .notification.success { border-left: 4px solid #10b981; }
     .notification.error { border-left: 4px solid #ef4444; }
     .notification.warning { border-left: 4px solid #f59e0b; }
-    .notification.info { border-left: 4px solid #3b82f6; }
+    .notification.info { border-left: 4px solid #3ef910; }
 
     /* ===== MOBILE OPTIMIZATIONS ===== */
 @media (max-width: 1024px) {
@@ -496,14 +496,36 @@
     top: 0;
     left: 0;
     right: 0;
-    height: autopx;
-    padding: 20px;
+    height: auto;
+    padding: 150px;
     display: flex;
     gap: 16px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+
+    .metric-card {
+      background: rgba(51, 165, 85, 0.1);
+      border: 1px solid rgba(36, 246, 71, 0.2);
+      border-radius: 12px; padding: 75px 100px;
+      text-align: center; min-width: 100px;
+      min-width: auto;
+    }
+
+.metric-value {
+      font-size: 60px; font-weight: 700;
+      background: linear-gradient(135deg, #039403, #00FF55);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-label {
+      font-size: 35px; opacity: 0.8; margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+
+    }
+
   }
 
   .brand {
@@ -511,6 +533,9 @@
     font-weight: bold;
     justify-content: center;
   }
+
+
+
 
   .dashboard-section { 
     display: none;
@@ -530,15 +555,12 @@
   }
 
   #controlPanel {
-justify-content: center;
-justify-items: center;
     right: 10px;
     width: 140px; /* reduzido */
   }
 
 #cameraControls .tool-grid {
   grid-template-columns: 1fr;
-  justify-items: center;
 }
 
 #selectTool {
@@ -646,7 +668,7 @@ justify-items: center;
 
 #mobileControls button {
   background: rgba(51, 65, 85, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(48, 163, 184, 0.3);
   color: #e2e8f0;
   font-size: 20px;
   padding: 12px 18px;
@@ -667,11 +689,11 @@ justify-items: center;
 /* === HAMBURGUER + PAINEL MOBILE === */
 .hamburger {
   display: none;                /* escondido no desktop */
-  background: rgba(51,65,85,0.6);
+  background: rgba(51,165,85,0.6);
   border: 1px solid rgba(148,163,184,0.15);
-  color: #e2e8f0;
+  color: #e7ffe9;
   font-size: 20px;
-  padding: 8px 10px;
+  padding: 28px 30px;
   border-radius: 10px;
   cursor: pointer;
   position: absolute;
@@ -689,11 +711,11 @@ justify-items: center;
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 70px;           /* fica abaixo do cabeçalho */
+  top: 770px;           /* fica abaixo do cabeçalho */
   right: 8px;
   width: 92%;
-  max-width: 420px;
-  max-height: 72vh;
+  max-width: 400px;
+  max-height: 1880px;
   overflow-y: auto;
   display: block !important;   /* precisa sobrescrever o display:none !important */
   z-index: 380;
@@ -725,14 +747,14 @@ justify-items: center;
   bottom: 90px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(0, 68, 5, 0.9);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
-  padding: 20px 36px;
-  font-size: 20px;
+  padding: 70px 76px;
+  font-size: 40px;
   line-height: 1.4;
-  color: #e2e8f0;
+  color: #e7ffe9;
   text-align: center;
   z-index: 1200;
   animation: fadeIn 0.5s ease;
@@ -745,8 +767,6 @@ justify-items: center;
 }
 
 
-
-
   </style>
 </head>
 <body>
@@ -755,8 +775,8 @@ justify-items: center;
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
   <div class="brand">
-    <i class="fas fa-cube"></i>
-    SMAMUS 3D
+    <i class="fa fa-car"></i>
+    ESTACIONAMENTO SMAMUS
   </div>
   
   <div class="metrics-grid">
@@ -1099,6 +1119,7 @@ if (isMobile) {
 
   camera.attachControl(canvas, true);
 
+
   // ===== Controles de toque =====
   camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
   camera.panningSensibility = 80;        // dois dedos = pan suave
@@ -1359,10 +1380,10 @@ function setupKeyboardControls() {
 // ===== CONTROLES DE CÂMERA MELHORADOS =====
 function resetCamera() {
   if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
-    camera.radius = 80;
-    camera.alpha = -Math.PI/4;
-    camera.beta = Math.PI/3;
+    camera.setTarget(new BABYLON.Vector3(10, 60, -180));
+    camera.radius = 180;
+    camera.alpha = -Math.PI/5;
+    camera.beta = Math.PI/5;
   } else {
     camera.position = new BABYLON.Vector3(60, 35, -10);
     camera.rotation.x = Math.PI / 8;
@@ -1373,7 +1394,7 @@ function resetCamera() {
 
 function setTopView() {
   if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
+    camera.setTarget(new BABYLON.Vector3(0, 0, 0));
     camera.radius = 120;
     camera.alpha = 0;
     camera.beta = 0.1; // Quase do topo
@@ -1436,7 +1457,7 @@ function toggleTool(toolName) {
   if (toolName === 'create') {
     showCreationWizard();
   } else if (toolName === 'edit') {
-    if (vagaSelecionada && (role === 'admin' || role === 'operator')) {
+    if (vagaSelecionada && (role === 'admin')) {
       startFreeEdit();
     } else {
       NotificationSystem.show("Selecione uma vaga primeiro", "warning");
@@ -1736,7 +1757,7 @@ function selectVaga(vaga) {
   updateVagasList();
   NotificationSystem.show(`Vaga ${vaga.numero} selecionada`, "info", 2000);
   
-  if (isCtrlPressed && (role === 'admin' || role === 'operator') && !isEditingMode) {
+  if (isCtrlPressed && (role === 'admin') && !isEditingMode) {
     currentTool = 'edit';
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('editTool').classList.add('active');
@@ -2259,11 +2280,11 @@ function updatePermissions() {
     batchActions.style.display = 'block';
     cameraLockBtn.style.display = 'block';
   }
-  
+
   ['createTool', 'editTool', 'gridTool'].forEach(toolId => {
     const tool = document.getElementById(toolId);
     if (toolId === 'editTool') {
-      tool.style.display = role !== 'viewer' ? 'block' : 'none';
+      tool.style.display = role !== 'viewer' && role !== 'operator' ? 'block' : 'none';
     } else {
       tool.style.display = role === 'admin' ? 'block' : 'none';
     }
@@ -2315,7 +2336,7 @@ function updateVagasList() {
             <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
             ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
           </button>
-          ${role !== 'viewer' ? `
+          ${role !== 'viewer' && role !== 'operator' ? `
             <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
               <i class="fas fa-edit"></i> Editar
             </button>
