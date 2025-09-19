@@ -497,7 +497,7 @@
     left: 0;
     right: 0;
     height: auto;
-    padding: 40px;
+    padding: 20px;
     display: flex;
     gap: 16px;
     flex-direction: column;
@@ -691,7 +691,7 @@
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 520px;           /* fica abaixo do cabeçalho */
+  top: 490px;           /* fica abaixo do cabeçalho */
   right: 18px;
   width: 100%;
   max-width: 400px;
@@ -1357,45 +1357,41 @@ function setupKeyboardControls() {
   });
 }
 
-// ===== CONTROLES DE CÂMERA MELHORADOS =====
 function resetCamera() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(10, 60, -180));
-    camera.radius = 180;
-    camera.alpha = -Math.PI/5;
-    camera.beta = Math.PI/5;
+  if (camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(60, 0, -10));
+    camera.alpha = -Math.PI / 4;
+    camera.beta = Math.PI / 4;
+    camera.radius = 120;
   } else {
     camera.position = new BABYLON.Vector3(60, 35, -10);
-    camera.rotation.x = Math.PI / 8;
-    camera.rotation.y = 9.8;
+    camera.setTarget(new BABYLON.Vector3(60, 0, -10));
   }
   NotificationSystem.show("Câmera resetada", "info", 2000);
 }
 
 function setTopView() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(0, 0, 0));
-    camera.radius = 120;
-    camera.alpha = 0;
-    camera.beta = 0.1; // Quase do topo
+  if (camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(40, 0, -30));
+    camera.alpha = 0;              // horizontal
+    camera.beta = Math.PI / 2;     // de cima
+    camera.radius = 150;
   } else {
-    camera.position = new BABYLON.Vector3(40, 100, 0);
-    camera.rotation.x = Math.PI / 2;
-    camera.rotation.y = 0;
+    camera.position = new BABYLON.Vector3(40, 120, 20);
+    camera.setTarget(new BABYLON.Vector3(60, 0, 80));
   }
   NotificationSystem.show("Vista superior ativada", "info", 2000);
 }
 
 function setIsometricView() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
-    camera.radius = 100;
-    camera.alpha = -Math.PI/4;
-    camera.beta = Math.PI/4;
+  if (camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(-80, 50, -60));
+    camera.alpha = -Math.PI / 4;   // 45° horizontal
+    camera.beta = Math.PI / 4;     // inclinação
+    camera.radius = 190;
   } else {
-    camera.position = new BABYLON.Vector3(80, 50, 80);
-    camera.rotation.x = Math.PI / 6;
-    camera.rotation.y = -Math.PI / 4;
+    camera.position = new BABYLON.Vector3(5, 80, 120);
+    camera.setTarget(new BABYLON.Vector3(-200, 0, -300));
   }
   NotificationSystem.show("Vista isométrica ativada", "info", 2000);
 }
@@ -1412,13 +1408,21 @@ function focusOnSelected() {
     camera.setTarget(target);
     camera.radius = 40;
   } else {
-    const distance = 25;
-    const angle = camera.rotation.y;
-    const height = 15;
-    
-    camera.position.x = target.x + Math.cos(angle) * distance;
-    camera.position.z = target.z + Math.sin(angle) * distance;
-    camera.position.y = target.y + height;
+const distance = 20;   // distância atrás do objeto
+    const height = 15;     // altura da câmera
+
+    // pega a direção atual da câmera (para saber o ângulo de visão)
+    const forward = camera.getDirection(BABYLON.Axis.Z);
+
+    // reposiciona a câmera "atrás" do alvo mantendo distância
+    camera.position = new BABYLON.Vector3(
+      target.x - forward.x * distance,
+      target.y + height,
+      target.z - forward.z * distance
+    );
+
+    // faz a câmera olhar para a vaga
+    camera.setTarget(target);
   }
   
   NotificationSystem.show(`Focado na ${vagaSelecionada.numero}`, "info", 2000);
