@@ -490,6 +490,7 @@
   .auth-section {
     display: none !important;
   }
+
    
    #smartDashboard {
     position: fixed;
@@ -1119,7 +1120,7 @@ if (isMobile) {
   camera.panningInertia = 0.6;     // pan suave
 } else {
     // Desktop: Universal Camera mais intuitiva
-    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
+    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(24, 80, -15), scene);
     camera.rotation.x = Math.PI / 5;
     camera.rotation.y = 10.5;
     camera.keysUp.push(87); // W
@@ -1359,42 +1360,49 @@ function setupKeyboardControls() {
 
 function resetCamera() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(60, 0, -10));
-    camera.alpha = -Math.PI / 4;
-    camera.beta = Math.PI / 4;
-    camera.radius = 120;
+    // Mobile
+    camera.setTarget(new BABYLON.Vector3(-75, 10, -50));
+    camera.alpha = BABYLON.Tools.ToRadians(180);
+    camera.beta = BABYLON.Tools.ToRadians(65);
+    camera.radius = 150;
   } else {
-    camera.position = new BABYLON.Vector3(60, 35, -10);
-    camera.setTarget(new BABYLON.Vector3(60, 0, -10));
+    // Desktop
+    camera.position = new BABYLON.Vector3(24, 80, -15);
+    camera.rotation.x = Math.PI / 5;
+    camera.rotation.y = 10.5;
   }
   NotificationSystem.show("Câmera resetada", "info", 2000);
 }
 
+
 function setTopView() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, -30));
-    camera.alpha = 0;              // horizontal
-    camera.beta = Math.PI / 2;     // de cima
-    camera.radius = 150;
+    camera.setTarget(new BABYLON.Vector3(-75, 0, -50));
+    camera.alpha = 0;
+    camera.beta = Math.PI / 10;   // visão de cima
+    camera.radius = 200;
   } else {
-    camera.position = new BABYLON.Vector3(40, 120, 20);
-    camera.setTarget(new BABYLON.Vector3(60, 0, 80));
+    camera.position = new BABYLON.Vector3(-75, 250, -50);
+    camera.setTarget(new BABYLON.Vector3(-75, 0, -50));
   }
   NotificationSystem.show("Vista superior ativada", "info", 2000);
 }
 
 function setIsometricView() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(-80, 50, -60));
-    camera.alpha = -Math.PI / 4;   // 45° horizontal
-    camera.beta = Math.PI / 4;     // inclinação
-    camera.radius = 190;
+    camera.setTarget(new BABYLON.Vector3(-75, 0, -30));
+    camera.alpha = -Math.PI / 6;  
+    camera.beta = Math.PI / 3;    // inclinado
+    camera.radius = 200;
   } else {
-    camera.position = new BABYLON.Vector3(5, 80, 120);
-    camera.setTarget(new BABYLON.Vector3(-200, 0, -300));
+    camera.position = new BABYLON.Vector3(-200, 150, -100);
+    camera.setTarget(new BABYLON.Vector3(-55, 20, -20));
+    camera.rotation.x = Math.PI / 5;
+    camera.rotation.y = 1;
   }
   NotificationSystem.show("Vista isométrica ativada", "info", 2000);
 }
+
 
 function focusOnSelected() {
   if (!vagaSelecionada) {
@@ -1756,9 +1764,9 @@ async function ocuparVaga() {
   vagaSelecionada.ocupada = true;
   vagaSelecionada.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
 
-// Fixar carpo.glb nas vagas 13 e 14
+// Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 13 || _num === 14) {
+if (_num === 14 || _num === 15) {
   vagaSelecionada.carModel = 'carpo.glb';
 }
 
@@ -1868,9 +1876,9 @@ async function ocuparTodas() {
       vaga.ocupada = true;
       vaga.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
 
-// Fixar carpo.glb nas vagas 13 e 14
+// Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 13 || _num === 14) {
+if (_num === 14 || _num === 15) {
   vaga.carModel = 'carpo.glb';
 }
 
@@ -2449,9 +2457,9 @@ db.ref('vagas').on('value', snapshot => {
         numero
       };
 
-	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
 const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
-if ((_numCriada === 13 || _numCriada === 14) && vaga.ocupada) {
+if ((_numCriada === 14 || _numCriada === 15) && vaga.ocupada) {
   vaga.carModel = 'carpo.glb';
 }
 
@@ -2484,9 +2492,9 @@ if ((_numCriada === 13 || _numCriada === 14) && vaga.ocupada) {
       vaga.carModel = vData.carModel || null;
       vaga.numero = vData.numero || vaga.numero || null;
 	
-	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
 const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if ((_numAtual === 13 || _numAtual === 14) && vaga.ocupada) {
+if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
   vaga.carModel = 'carpo.glb';
 }
 
