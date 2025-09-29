@@ -1392,7 +1392,7 @@ function resetCamera() {
 
 function setTopView() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(-75, 0, -45));
+    camera.setTarget(new BABYLON.Vector3(-105, 0, -38));
     camera.alpha = 0;
     camera.beta = Math.PI / 10;   // visão de cima
     camera.radius = 200;
@@ -1405,10 +1405,10 @@ function setTopView() {
 
 function setIsometricView() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(-75, 0, -30));
-    camera.alpha = -Math.PI / 6;  
+    camera.setTarget(new BABYLON.Vector3(-25, 50, -23));
+    camera.alpha = Math.PI / 15;  
     camera.beta = Math.PI / 3;    // inclinado
-    camera.radius = 200;
+    camera.radius = 170;
   } else {
     camera.position = new BABYLON.Vector3(-220, 150, -100);
     camera.setTarget(new BABYLON.Vector3(-55, 20, -20));
