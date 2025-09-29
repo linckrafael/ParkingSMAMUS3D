@@ -1099,10 +1099,10 @@ if (isMobile) {
   // ArcRotateCamera ajustada para estilo Google Maps 3D
   camera = new BABYLON.ArcRotateCamera(
     "mobileCam",
-    BABYLON.Tools.ToRadians(180), // ângulo inicial horizontal
-    BABYLON.Tools.ToRadians(65),  // ângulo inicial vertical
-    150,                          // distância inicial
-    new BABYLON.Vector3(-75, 10, -50), // alvo inicial (pode ser o centro do estacionamento)
+    BABYLON.Tools.ToRadians(158), // ângulo inicial horizontal
+    BABYLON.Tools.ToRadians(55),  // ângulo inicial vertical
+    550,                          // distância inicial
+    new BABYLON.Vector3(-115, 10, -27), // alvo inicial (pode ser o centro do estacionamento)
     scene
   );
 
@@ -1128,9 +1128,9 @@ if (isMobile) {
   camera.panningInertia = 0.6;     // pan suave
 } else {
     // Desktop: Universal Camera mais intuitiva
-    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(24, 80, -15), scene);
+    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(28, 80, -15), scene);
     camera.rotation.x = Math.PI / 5;
-    camera.rotation.y = 10.5;
+    camera.rotation.y = 10.6;
     camera.keysUp.push(87); // W
     camera.keysDown.push(83); // S
     camera.keysLeft.push(65); // A
@@ -1180,7 +1180,7 @@ canvas.addEventListener("wheel", (e) => {
   dirLight.intensity = 0.5;
   
   // Chão
-  const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 1000 }, scene);
+  const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 200, height: 200 }, scene);
   ground.position.y = -0.05;
   ground.isPickable = true;
   
@@ -1189,13 +1189,20 @@ canvas.addEventListener("wheel", (e) => {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
   
-  // Skybox
-  const skybox = BABYLON.MeshBuilder.CreateSphere("skyBox", { diameter: 1000 }, scene);
-  skybox.isPickable = false;
-  const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMat.backFaceCulling = false;
-  skyboxMat.diffuseColor = new BABYLON.Color3(0.05, 0.08, 0.12);
-  skybox.material = skyboxMat;
+// Skybox com textura realista
+const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000 }, scene);
+skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
+const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+skyboxMaterial.backFaceCulling = false;
+skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
+  "https://playground.babylonjs.com/textures/skybox",
+  scene
+);
+skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+skybox.material = skyboxMaterial;
+
   
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
@@ -1369,15 +1376,15 @@ function setupKeyboardControls() {
 function resetCamera() {
   if (camera.getClassName() === "ArcRotateCamera") {
     // Mobile
-    camera.setTarget(new BABYLON.Vector3(-75, 10, -50));
-    camera.alpha = BABYLON.Tools.ToRadians(180);
-    camera.beta = BABYLON.Tools.ToRadians(65);
-    camera.radius = 150;
+    camera.setTarget(new BABYLON.Vector3(-115, 10, -27));
+    camera.alpha = BABYLON.Tools.ToRadians(158);
+    camera.beta = BABYLON.Tools.ToRadians(55);
+    camera.radius = 550;
   } else {
     // Desktop
     camera.position = new BABYLON.Vector3(24, 80, -15);
     camera.rotation.x = Math.PI / 5;
-    camera.rotation.y = 10.5;
+    camera.rotation.y = 10.6;
   }
   NotificationSystem.show("Câmera resetada", "info", 2000);
 }
@@ -1385,13 +1392,13 @@ function resetCamera() {
 
 function setTopView() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(-75, 0, -50));
+    camera.setTarget(new BABYLON.Vector3(-75, 0, -45));
     camera.alpha = 0;
     camera.beta = Math.PI / 10;   // visão de cima
     camera.radius = 200;
   } else {
-    camera.position = new BABYLON.Vector3(-75, 250, -50);
-    camera.setTarget(new BABYLON.Vector3(-75, 0, -50));
+    camera.position = new BABYLON.Vector3(-95, 450, -40);
+    camera.setTarget(new BABYLON.Vector3(-95, 0, -40));
   }
   NotificationSystem.show("Vista superior ativada", "info", 2000);
 }
@@ -1403,7 +1410,7 @@ function setIsometricView() {
     camera.beta = Math.PI / 3;    // inclinado
     camera.radius = 200;
   } else {
-    camera.position = new BABYLON.Vector3(-200, 150, -100);
+    camera.position = new BABYLON.Vector3(-220, 150, -100);
     camera.setTarget(new BABYLON.Vector3(-55, 20, -20));
     camera.rotation.x = Math.PI / 5;
     camera.rotation.y = 1;
@@ -2329,9 +2336,10 @@ function updateVagasList() {
       </div>
       ${role !== 'viewer' && !isEditing ? `
         <div class="vaga-actions">
-          <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}'))">
-            <i class="fas fa-eye"></i> Ver
-          </button>
+<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+  <i class="fas fa-eye"></i> Ver
+</button>
+
           <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
             <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
             ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
@@ -2644,7 +2652,6 @@ document.addEventListener("DOMContentLoaded", function() {
   // DEBUG helper: se quiser verificar no console
   // console.log("hamburger ready", hamburgerBtn, controlPanel);
 });
-
 
 
 
