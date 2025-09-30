@@ -1121,7 +1121,7 @@ if (isMobile) {
   camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
   camera.lowerRadiusLimit = 5;   // zoom até encostar no chão
-  camera.upperRadiusLimit = 500; // limite de afastamento
+  camera.upperRadiusLimit = 300; // limite de afastamento
 
   // ===== Inércia e suavidade =====
   camera.inertia = 0.7;            // movimento fluido
@@ -1154,7 +1154,7 @@ canvas.addEventListener("wheel", (e) => {
   }
 });
 
-    const MIN_Y = 1, MAX_Y = 100;
+    const MIN_Y = 1, MAX_Y = 400;
     scene.registerBeforeRender(()=>{
       if(camera.position.y<MIN_Y) camera.position.y=MIN_Y;
       if(camera.position.y>MAX_Y) camera.position.y=MAX_Y;
@@ -1164,7 +1164,7 @@ canvas.addEventListener("wheel", (e) => {
   // Limites de câmera
   if (camera.lowerRadiusLimit !== undefined) {
     camera.lowerRadiusLimit = 20;
-    camera.upperRadiusLimit = 200;
+    camera.upperRadiusLimit = 300;
     camera.lowerBetaLimit = 0.1;
     camera.upperBetaLimit = Math.PI/2.2;
   }
