@@ -1031,6 +1031,9 @@ let currentTool = 'select';
 let role = "viewer";
 let nextVagaNumber = 1;
 let pendingPosition = null;
+let carroCounter = 0;           // conta quantos carros já foram colocados
+let easterEggToggle = false;    // alterna entre car8 e car11
+
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1049,7 +1052,7 @@ let isMobile = false;
 const PASSWORDS = { operator: "op123", admin: "admin123" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
-const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car9.glb","car10.glb"];
+const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
 const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
@@ -1772,12 +1775,26 @@ function selectVaga(vaga) {
   }
 }
 
+//EASTEREGG
+function escolherCarroNormal() {
+  carroCounter++;
+  
+  if (carroCounter % 150 === 0) {
+    easterEggToggle = !easterEggToggle;
+    return easterEggToggle ? "car11.glb" : "car8.glb";
+  }
+  
+  return CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+}
+
+
 // ===== OPERAÇÕES DE VAGA =====
 async function ocuparVaga() {
   if (role === "viewer" || !vagaSelecionada || vagaSelecionada.ocupada) return;
   
   vagaSelecionada.ocupada = true;
-  vagaSelecionada.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+  vagaSelecionada.carModel = escolherCarroNormal();
+
 
 // Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
@@ -1785,9 +1802,6 @@ if (_num === 14 || _num === 15) {
   vagaSelecionada.carModel = 'carpo.glb';
 }
 
-
-
-  
   if (vagaSelecionada.mesh.material) {
     vagaSelecionada.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
     if (!isEditingMode) {
@@ -1889,7 +1903,8 @@ async function ocuparTodas() {
   for (let vaga of livres) {
     try {
       vaga.ocupada = true;
-      vaga.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+      vaga.carModel = escolherCarroNormal();
+
 
 // Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
