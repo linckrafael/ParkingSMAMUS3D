@@ -1193,7 +1193,7 @@ canvas.addEventListener("wheel", (e) => {
   ground.material = groundMat;
   
 // Skybox com textura realista
-const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000 }, scene);
+const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
 skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
 const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
 skyboxMaterial.backFaceCulling = false;
