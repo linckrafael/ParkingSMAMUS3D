@@ -77,6 +77,16 @@
   font-size: 14px;
 }
 
+.clock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 130px; /* 🔹 largura fixa do bloco do relógio */
+  min-width: 130px;
+  text-align: center;
+}
+
 
     .brand {
       display: flex; align-items: center; gap: 30px;
@@ -1081,7 +1091,7 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
+const PASSWORDS = { operator: "op123", admin: "admin123" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
 const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
