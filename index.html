@@ -35,7 +35,7 @@
       border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
-      color: #e2e8f0;
+      color: #f0e2e3;
       z-index: 20;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -47,10 +47,10 @@
 
     /* ===== HEADER DASHBOARD ===== */
     #smartDashboard {
-      top: 20px; left: 20px; right: 20px;
+      top: 0px; left: 0px; right: 0px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0px 24px;
-      gap:10px;
+      padding: 10px 24px;
+      gap:5px;
     }
 
     .dashboard-section {
@@ -58,9 +58,29 @@
       
     }
 
+#horaAtual {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+#dataAtual {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.brand .clock-card #dataAtual {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
+  color: #a7ffb0 !important;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+
     .brand {
       display: flex; align-items: center; gap: 30px;
-      font-size: 30px;
+      font-size: 40px;
       font-weight: 700;
       white-space: wrap;
       background: linear-gradient(135deg, #039403, #00FF55, #039403);
@@ -68,9 +88,10 @@
       -webkit-text-fill-color: transparent;
     }
 
+
     .metrics-grid {
       display: flex;
-      gap: 10px;
+      gap: 5px;
       align-items: center;
       justify-content: space-between;
     }
@@ -84,14 +105,14 @@
     }
 
     .metric-value {
-      font-size: 30px; font-weight: 700;
+      font-size: 20px; font-weight: 700;
       background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 30px; opacity: 0.8; margin-top: 4px;
+      font-size: 20px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
 
     }
@@ -178,7 +199,7 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 130px; right: 360px;
+      top: 110px; right: 360px;
       background: rgba(51, 65, 85, 0.8);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 12px;
@@ -462,7 +483,7 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 120px; right: 20px;
+      position: fixed; top: 103px; right: 20px;
       background: rgba(51, 165, 85, 0.3);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
@@ -519,6 +540,7 @@
       text-align: center; min-width: 100px;
       min-width: auto;
     }
+
 
 .metric-value {
       font-size: 60px; font-weight: 700;
@@ -754,7 +776,11 @@
     display: none; /* só aparece no mobile */
   }
 }
-
+@media (max-width: 1024px) {
+  .clock-card {
+    display: none !important;
+  }
+}
 
   </style>
 </head>
@@ -763,10 +789,16 @@
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
+
   <div class="brand">
+<div class="metric-card clock-card">
+  <div class="metric-value" id="horaAtual">--:--:--</div>
+  <div class="metric-label" id="dataAtual">--/--/----</div>
+</div>
     <i class="fa fa-car"></i>
     ESTACIONAMENTO SMAMUS
   </div>
+
   
   <div class="metrics-grid">
     <div class="metric-card">
@@ -1049,7 +1081,7 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "admin123" };
+const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
 const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
@@ -2668,6 +2700,23 @@ document.addEventListener("DOMContentLoaded", function() {
   // console.log("hamburger ready", hamburgerBtn, controlPanel);
 });
 
+// ===== RELÓGIO =====
+function atualizarRelogio() {
+  const agora = new Date();
+  const horas = String(agora.getHours()).padStart(2, '0');
+  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const segundos = String(agora.getSeconds()).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const ano = agora.getFullYear();
+
+  document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
+  document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
+}
+
+// Atualiza o relógio a cada segundo
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
 
 
 </script>
