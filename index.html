@@ -712,14 +712,14 @@
   background: rgba(51,165,85,0.6);
   border: 1px solid rgba(148,163,184,0.15);
   color: #e7ffe9;
-  font-size: 20px;
-  padding: 28px 30px;
+  font-size: 25px;
+  padding: 20px 25px;
   border-radius: 10px;
   cursor: pointer;
   position: absolute;
   right: 16px;
   top: 180px;
-  z-index: 4000;
+  z-index: 1000;
 }
 
 /* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
@@ -731,19 +731,42 @@
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 330px;           /* fica abaixo do cabeçalho */
-  right: 18px;
+  top: 275px;           /* fica abaixo do cabeçalho */
+  right: 0px;
   width: 100%;
-  max-width: 400px;
+  max-width: 260px;
   max-height: 1880px;
   overflow-y: auto;
   display: block !important;   /* precisa sobrescrever o display:none !important */
-  z-index: 380;
+  z-index: 3800;
   transform-origin: top right;
   transform: translateY(-6px);
   transition: transform 160ms ease, opacity 160ms ease;
   opacity: 1;
   box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  border-radius: 15px;
+}
+  #controlPanel.mobile-open .tool-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #controlPanel.mobile-open .section-title {
+    font-size: 25px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  #controlPanel.mobile-open .tool-btn span,
+  #controlPanel.mobile-open .action-btn span {
+    font-size: 25px !important;
+  }
+@media (max-width: 1024px) {
+  #controlPanel.mobile-open #selectTool {
+    grid-column: auto !important; /* remove o span especial */
+    justify-self: stretch !important; /* ocupa toda a largura */
+  }
+
+  #controlPanel.mobile-open .tool-btn {
+    width: 100% !important; /* garante largura igual para todos */
+  }
 }
 
 /* efeito: quando abrir, faz um pequeno slide */
@@ -1090,7 +1113,7 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "admin123" };
+const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
 const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
