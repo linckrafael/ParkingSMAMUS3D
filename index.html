@@ -209,10 +209,10 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 110px; right: 360px;
-      background: rgba(51, 65, 85, 0.8);
+      top: 105px; right: 60px;
+      background: rgba(51, 65, 85, 0.8); 
       border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #e2e8f0; padding: 12px;
+      color: #ffffff !important; padding: 10px;
       border-radius: 12px; cursor: pointer;
       transition: all 0.3s ease;
       z-index: 30;
@@ -813,6 +813,161 @@
     display: none !important;
   }
 }
+/* ===== AJUSTE FINAL PARA NOTEBOOKS (1025px a 1366px) ===== */
+@media (min-width: 1025px) and (max-width: 1366px) {
+
+  #smartDashboard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    gap: 8px;
+    flex-wrap: nowrap; /* 🔹 garante tudo em uma linha */
+  }
+
+  /* Marca e relógio */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 30px;  /* 🔹 levemente menor pra caber */
+    flex-shrink: 1;   /* texto pode reduzir se precisar */
+    white-space: nowrap; /* 🔹 evita quebra de linha */
+  }
+
+  .clock-card {
+    width: 110px;
+    min-width: 110px;
+    flex-shrink: 0; /* 🔹 relógio mantém largura fixa */
+    text-align: center;
+  }
+
+  /* Métricas mais compactas */
+  .metrics-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 1;
+  }
+
+  .metric-card {
+    min-width: 85px;
+    padding: 6px 8px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+  }
+
+  .metric-label {
+    font-size: 13px;
+  }
+
+  /* Login à direita (mantendo visual original) */
+  .dashboard-section {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .auth-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  #roleSelect,
+  #userPass {
+    font-size: 14px;
+    padding: 6px 10px;
+    min-width: 90px;
+  }
+
+  .auth-section button {
+    padding: 6px 10px !important;
+  }
+  /* Painel da direita (ferramentas) */
+  #controlPanel {
+    width: 260px;          /* 🔹 antes era 320px */
+    top: 150px;
+    right: 16px;
+    padding: 14px;
+  }
+
+  /* Painel da esquerda (vagas) */
+  #vagasPanel {
+    width: 240px;          /* 🔹 antes era 300px */
+    top: 150px;
+    left: 16px;
+    padding: 14px;
+  }
+
+  /* Botões e grids */
+  .tool-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .tool-btn,
+  .action-btn {
+    font-size: 11px;
+    padding: 6px 8px !important;
+    border-radius: 8px;
+  }
+
+  .tool-btn i,
+  .action-btn i {
+    font-size: 14px;
+  }
+
+  /* Títulos */
+  .section-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Campos de busca e filtros */
+  .vaga-search {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .filter-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* Itens da lista de vagas */
+  .vaga-item {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .vaga-numero {
+    font-size: 12px;
+  }
+
+  .vaga-status {
+    font-size: 10px;
+  }
+    #cameraLockBtn {
+      position: absolute;
+      top: 85px; right: 60px;
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #ffffff !important;
+      padding: 8px;
+      border-radius: 12px; cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+    }
+
+}
+
 
   </style>
 </head>
@@ -1057,7 +1212,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar 
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -2312,7 +2467,8 @@ function stopMoveCamera() {
 function login() {
   const selected = document.getElementById("roleSelect").value;
   const pass = document.getElementById("userPass").value;
-  
+
+
   if (selected === "viewer") {
     role = "viewer";
     NotificationSystem.show("Modo Visualizador ativado", "info");
