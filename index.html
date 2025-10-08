@@ -1212,7 +1212,7 @@ scene.registerBeforeRender(() => {
     camera.keysDown.push(83); // S
     camera.keysLeft.push(65); // A
     camera.keysRight.push(68); // D
-    camera.speed = 1.5; // Movimento mais lento e controlado
+    camera.speed = 3;
     camera.angularSensibility = 2000; // Rotação mais suave
     camera.inputs.addMouseWheel();
     camera.wheelPrecision = 50;
@@ -2190,40 +2190,29 @@ async function carregarCarroNormalizado(vaga, modelFile) {
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
   scene.onPointerObservable.add((pointerInfo) => {
-    const evt = pointerInfo.event;
-    
     switch (pointerInfo.type) {
-      case BABYLON.PointerEventTypes.POINTERDOWN:
-        if (evt.button === 0) {
-          const pick = scene.pick(scene.pointerX, scene.pointerY);
-          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
-          
-          if (pick.hit) {
-            if (currentTool === 'create' && role !== 'viewer') {
-              pendingPosition = pick.pickedPoint.clone();
-              pendingPosition.y += 0.01;
-              
-              if (document.getElementById('creationWizard').style.display === 'none') {
-                showCreationWizard();
-              }
-              
-              NotificationSystem.show("Posição definida. Configure no assistente.", "info");
-              return;
-            }
-            
-            const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
-            if (vaga) {
-              selectVaga(vaga);
-              
-              if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
-                isDragging = true;
-                canvas.style.cursor = 'move';
-                if (cameraWasAttached && !isCameraLocked) {
-                  camera.detachControl(canvas);
-                  cameraWasAttached = false;
-                }
-              }
-            }
+      case BABYLON.PointerEventTypes.POINTERPICK:
+        const pickResult = pointerInfo.pickInfo;
+        if (!pickResult.hit) return;
+
+        const pickedMesh = pickResult.pickedMesh;
+        const vaga = vagas.find(v => v.mesh === pickedMesh);
+
+        if (vaga) {
+          // Clicou em uma vaga → seleciona normalmente
+          selectVaga(vaga);
+        } else {
+          // Clicou fora de qualquer vaga → deseleciona
+          if (vagaSelecionada) {
+            // Restaura cor da vaga anterior
+            const color = vagaSelecionada.ocupada
+              ? new BABYLON.Color3(0.8, 0.2, 0.2)
+              : new BABYLON.Color3(0, 0.8, 0.3);
+            vagaSelecionada.mesh.material.emissiveColor = color.scale(0.3);
+
+            vagaSelecionada = null;
+            updateVagasList();
+            NotificationSystem.show("Nenhuma vaga selecionada", "info", 1500);
           }
         }
         break;
