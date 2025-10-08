@@ -1189,6 +1189,16 @@ if (isMobile) {
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
   camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
   camera.upperRadiusLimit = 600; // limite de afastamento
+  camera.panningSensibility = 40; // pan mais suave
+camera.panningInertia = 0.8;    // movimento suave
+camera.panningDistanceLimit = 1000; // evita "sumir" o estacionamento
+
+// Evita o alvo (target) ir abaixo do chão
+scene.registerBeforeRender(() => {
+  if (camera.target.y < 0) {
+    camera.target.y = 0;
+  }
+});
 
   // ===== Inércia e suavidade =====
   camera.inertia = 0.7;            // movimento fluido
