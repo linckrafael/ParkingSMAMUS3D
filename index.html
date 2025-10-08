@@ -1177,7 +1177,7 @@ if (isMobile) {
 
 
   // ===== Controles de toque =====
-  camera.pinchToPanMaxDistance = 100;     // ativa pinch para zoom
+  camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
   camera.panningSensibility = 8;        // dois dedos = pan suave
   camera.angularSensibilityX = 3000;     // rotação horizontal
   camera.angularSensibilityY = 3000;     // rotação vertical
@@ -1187,8 +1187,8 @@ if (isMobile) {
   // ===== Limites =====
   camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
-  camera.lowerRadiusLimit = 5;   // zoom até encostar no chão
-  camera.upperRadiusLimit = 300; // limite de afastamento
+  camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
+  camera.upperRadiusLimit = 600; // limite de afastamento
 
   // ===== Inércia e suavidade =====
   camera.inertia = 0.7;            // movimento fluido
