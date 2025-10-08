@@ -9,7 +9,6 @@
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -2310,37 +2309,24 @@ function stopMoveCamera() {
 
 
 // ===== SISTEMA DE AUTENTICAÇÃO =====
-async function login() {
-  const roleSelect = document.getElementById("roleSelect").value;
-  const passwordInput = document.getElementById("userPass").value;
-
-  // Senhas locais — como antes
-  const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
-
-  // Verifica a senha
-  if (roleSelect === "viewer" ||
-      (roleSelect === "operator" && passwordInput === PASSWORDS.operator) ||
-      (roleSelect === "admin" && passwordInput === PASSWORDS.admin)) {
-
-    // Autentica anonimamente no Firebase
-    const userCred = await firebase.auth().signInAnonymously();
-    const uid = userCred.user.uid;
-
-    // Salva o papel do usuário no banco
-    await firebase.database().ref(`roles/${uid}`).set(roleSelect);
-
-    // Define a role localmente (para a interface)
-    role = roleSelect;
-    const badge = document.getElementById("roleBadge");
-    badge.textContent = roleSelect.charAt(0).toUpperCase() + roleSelect.slice(1);
-    badge.className = `role-badge role-${roleSelect}`;
-
-    NotificationSystem.show(`Autenticado como ${roleSelect.toUpperCase()}`, "success");
+function login() {
+  const selected = document.getElementById("roleSelect").value;
+  const pass = document.getElementById("userPass").value;
+  
+  if (selected === "viewer") {
+    role = "viewer";
+    NotificationSystem.show("Modo Visualizador ativado", "info");
+  } else if (pass === PASSWORDS[selected]) {
+    role = selected;
+    NotificationSystem.show(`Modo ${role === "admin" ? "Administrador" : "Operador"} ativado`, "success");
   } else {
-    NotificationSystem.show("Senha incorreta ou função inválida", "error");
+    NotificationSystem.show("Senha incorreta", "error");
+    return;
   }
+  
+  updateUI();
+  document.getElementById("userPass").value = "";
 }
-
 
 // ===== INTERFACE DE USUÁRIO =====
 function updateUI() {
