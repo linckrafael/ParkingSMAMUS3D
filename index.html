@@ -2,7 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>Smamus 3D - Sistema Inteligente de Estacionamento</title>
+  <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Sistema de Estacionamento - SMAMUS 3D</title>
+
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -28,14 +32,14 @@
 
     /* ===== GLASSMORPHISM BASE ===== */
     .glass-panel {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(0, 68, 5, 0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
       border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 16px;
+      border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
-      color: #e2e8f0;
+      color: #f0e2e3;
       z-index: 20;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -47,78 +51,113 @@
 
     /* ===== HEADER DASHBOARD ===== */
     #smartDashboard {
-      top: 20px; left: 20px; right: 20px; height: 80px;
+      top: 0px; left: 0px; right: 0px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px;
+      padding: 10px 24px;
+      gap:5px;
     }
 
     .dashboard-section {
       display: flex; align-items: center; gap: 24px;
+      
     }
 
+#horaAtual {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+#dataAtual {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.brand .clock-card #dataAtual {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
+  color: #a7ffb0 !important;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.clock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 130px; /* 🔹 largura fixa do bloco do relógio */
+  min-width: 130px;
+  text-align: center;
+}
+
+
     .brand {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 16px;
+      display: flex; align-items: center; gap: 30px;
+      font-size: 40px;
       font-weight: 700;
-      white-space: nowrap;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      white-space: wrap;
+      background: linear-gradient(135deg, #039403, #00FF55, #039403);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
+
     .metrics-grid {
       display: flex;
-      gap: 8px;
+      gap: 5px;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .metric-card {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
+      background: rgba(51, 165, 85, 0.1);
+      border: 1px solid rgba(36, 246, 71, 0.2);
       border-radius: 12px; padding: 12px 16px;
       text-align: center; min-width: 100px;
-      padding: 4px 6px;
       min-width: auto;
     }
 
     .metric-value {
-      font-size: 14px; font-weight: 700;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 10px; opacity: 0.8; margin-top: 4px;
+      font-size: 20px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
+
     }
 
      .auth-section {
     display: flex;
     flex-direction: row; 
+    gap: 10px;
     align-items: center;
-    gap: 6px;
   }
 
 #roleSelect, #userPass {
-   font-size: 11px;
-    padding: 4px 6px;
+   font-size: 16px;
+    padding: 8px 12px;
     width: auto;
     min-width: 80px;
   }
 
     .role-badge {
-      padding: 6px 12px; border-radius: 20px;
+      padding: 8px 12px; border-radius: 20px;
       font-size: 12px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     .role-viewer { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
-    .role-operator { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .role-operator { background: rgba(51, 165, 85, 0.3); color: #23fa47; }
     .role-admin { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
     /* ===== CONTROLES LATERAIS ===== */
     #controlPanel {
-      top: 120px; right: 20px; width: 320px;
+      top: 170px; right: 20px; width: 320px;
       max-height: calc(100vh - 140px);
       padding: 20px; overflow-y: auto;
     }
@@ -129,7 +168,7 @@
 
     .section-title {
       font-size: 14px; font-weight: 600; margin-bottom: 12px;
-      color: #94a3b8; text-transform: uppercase;
+      color: #67cd64; text-transform: uppercase;
       letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
     }
 
@@ -140,7 +179,7 @@
     }
 
     .tool-btn, .action-btn {
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.6);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 12px;
       border-radius: 10px; cursor: pointer;
@@ -152,8 +191,8 @@
       padding: 4px 8px !important;
     }
 
-    .tool-btn:hover, .action-btn:hover {
-      background: rgba(59, 130, 246, 0.3);
+    .tool-btn:hover, .action-btn:hover, .tool-btn.active:hover {
+      background: rgba(251, 255, 18, 0.5);
       border-color: rgba(59, 130, 246, 0.5);
       transform: translateY(-2px);
     }
@@ -163,8 +202,8 @@
     }
 
     .tool-btn.active {
-      background: rgba(59, 130, 246, 0.4);
-      border-color: #3b82f6;
+      background: rgba(51, 165, 85, 0.4);
+      border-color: #003e04;
     }
 
     .tool-btn i, .action-btn i {
@@ -174,10 +213,10 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 120px; right: 360px;
-      background: rgba(51, 65, 85, 0.8);
+      top: 105px; right: 60px;
+      background: rgba(51, 65, 85, 0.8); 
       border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #e2e8f0; padding: 12px;
+      color: #ffffff !important; padding: 10px;
       border-radius: 12px; cursor: pointer;
       transition: all 0.3s ease;
       z-index: 30;
@@ -204,13 +243,13 @@
 
     /* ===== VAGAS PANEL ===== */
     #vagasPanel {
-      top: 120px; left: 20px; width: 300px;
+      top: 170px; left: 20px; width: 300px;
       max-height: calc(100vh - 140px);
       padding: 20px; overflow-y: auto;
     }
 
     .vaga-search {
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.2);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #e2e8f0; padding: 10px 12px;
       border-radius: 8px; width: 100%;
@@ -231,31 +270,31 @@
       padding: 6px 12px; border-radius: 16px;
       font-size: 12px; cursor: pointer;
       transition: all 0.2s ease;
-      background: rgba(51, 65, 85, 0.6);
+      background: rgba(51, 165, 85, 0.6);
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: #94a3b8;
     }
 
     .filter-chip:hover, .filter-chip.active {
-      background: rgba(59, 130, 246, 0.3);
-      border-color: #3b82f6; color: #3b82f6;
+      background: rgba(51, 165, 86, 0.3);
+      border-color: #41ff46; color: #ffffff;
     }
 
     .vaga-item {
-      background: rgba(51, 65, 85, 0.4);
+      background: rgba(51, 13:25 17/09/202565, 85, 0.4);
       border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 10px; padding: 12px; margin-bottom: 8px;
       cursor: pointer; transition: all 0.2s ease;
     }
 
     .vaga-item:hover {
-      background: rgba(59, 130, 246, 0.1);
-      border-color: rgba(59, 130, 246, 0.3);
+      background: rgba(251, 255, 18, 0.1);
+      border-color: rgba(65, 230, 70, 0.3);
     }
 
     .vaga-item.selected {
       background: rgba(59, 130, 246, 0.2);
-      border-color: #3b82f6;
+      border-color: #00fb00;
     }
 
     .vaga-item.editing {
@@ -304,8 +343,8 @@
     }
 
     .mini-btn:hover {
-      background: rgba(59, 130, 246, 0.3);
-      color: #3b82f6;
+      background: rgba(251, 255, 18, 0.3);
+      color: #fffff6;
     }
 
     /* ===== CREATION WIZARD ===== */
@@ -385,7 +424,7 @@
       backdrop-filter: blur(10px);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 12px; padding: 12px 16px;
-      color: #94a3b8; font-size: 12px;
+      color: #e7ffe9; font-size: 12px;
       z-index: 10; opacity: 0.8;
       transition: all 0.3s ease;
     }
@@ -458,13 +497,13 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 200px; right: 20px;
-      background: rgba(15, 23, 42, 0.95);
+      position: fixed; top: 103px; right: 20px;
+      background: rgba(51, 165, 85, 0.3);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 12px; padding: 16px;
       z-index: 4000;
-      color: #e2e8f0; z-index: 100;
+      color: #e7ffe9;
       max-width: 350px; opacity: 0;
       transform: translateX(100%);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -477,7 +516,7 @@
     .notification.success { border-left: 4px solid #10b981; }
     .notification.error { border-left: 4px solid #ef4444; }
     .notification.warning { border-left: 4px solid #f59e0b; }
-    .notification.info { border-left: 4px solid #3b82f6; }
+    .notification.info { border-left: 4px solid #3ef910; }
 
     /* ===== MOBILE OPTIMIZATIONS ===== */
 @media (max-width: 1024px) {
@@ -486,63 +525,71 @@
   .auth-section {
     display: none !important;
   }
-   
+
+  .notification {
+    top: 310px !important; /* ou o valor que preferir */
+    right: 10px;
+    max-width: 90%;
+  }
+
+ 
    #smartDashboard {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    height: 180px;
-    padding: 0 20px;
+    height: auto;
+    padding: 20px;
     display: flex;
     gap: 16px;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+
+    .metric-card {
+      background: rgba(51, 165, 85, 0.1);
+      border: 1px solid rgba(36, 246, 71, 0.2);
+      border-radius: 12px; padding: 35px 50px;
+      text-align: center; min-width: 100px;
+      min-width: auto;
+    }
+
+
+.metric-value {
+      font-size: 35px; font-weight: 700;
+      background: linear-gradient(135deg, #039403, #00FF55);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-label {
+      font-size: 25px; opacity: 0.8; margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+
+    }
+
   }
 
   .brand {
-    font-size: 60px; /* mais destaque */
+    font-size: 58px; /* mais destaque */
     font-weight: bold;
     justify-content: center;
   }
 
+
   .dashboard-section { 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap; 
-    gap: 30px;
+    display: none;
   }
 
  #vagasPanel {
  display: none !important;
 }
 
-  /* Painéis laterais compactos */
-  #controlPanel {
-    position: absolute;
-    top: 250px;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
-    padding: 10px; /* menor que desktop */
-  }
-
-  #controlPanel {
-justify-content: center;
-justify-items: center;
-    right: 10px;
-    width: 140px; /* reduzido */
-  }
-
-#cameraControls .tool-grid {
-  grid-template-columns: 1fr;
-  justify-items: center;
-}
+ 
 
 #selectTool {
-  grid-column: span 2;   /* ocupa as duas colunas */
+  grid-column: span 4;   /* ocupa as duas colunas */
   justify-self: center;  /* centraliza dentro da grid */
 }
 
@@ -559,19 +606,17 @@ justify-items: center;
   }
 
   /* Elementos menores */
-  .section-title { font-size: 12px; margin-bottom: 8px; }
+  .section-title { font-size: 29px; margin-bottom: 18px; }
   .tool-btn, .action-btn {
-    font-size: 11px; 
-    padding: 8px; 
-    min-height: 45px;
+    font-size: 35px; 
   }
-  .tool-btn i, .action-btn i { font-size: 14px; }
+  .tool-btn i, .action-btn i { font-size: 40px; }
 
   .vaga-item { padding: 8px; font-size: 12px; }
   .vaga-numero { font-size: 12px; }
   .vaga-status { font-size: 10px; }
 
-  .metric-card { min-width: 180px; padding: 5px 18px; }
+  .metric-card { min-width: 180px; padding: 10px 8px; }
   .metric-value { font-size: 20px; }
   .metric-label { font-size: 15px; }
 
@@ -582,7 +627,6 @@ justify-items: center;
   }
 
 }
-
 
 
     /* ===== UTILITIES ===== */
@@ -622,6 +666,8 @@ justify-items: center;
       border-color: #10b981 !important;
     }
 
+
+
 #mobileControls {
   position: fixed;
   bottom: 20px;
@@ -646,7 +692,7 @@ justify-items: center;
 
 #mobileControls button {
   background: rgba(51, 65, 85, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(48, 163, 184, 0.3);
   color: #e2e8f0;
   font-size: 20px;
   padding: 12px 18px;
@@ -667,17 +713,17 @@ justify-items: center;
 /* === HAMBURGUER + PAINEL MOBILE === */
 .hamburger {
   display: none;                /* escondido no desktop */
-  background: rgba(51,65,85,0.6);
+  background: rgba(51,165,85,0.6);
   border: 1px solid rgba(148,163,184,0.15);
-  color: #e2e8f0;
-  font-size: 20px;
-  padding: 8px 10px;
+  color: #e7ffe9;
+  font-size: 25px;
+  padding: 20px 25px;
   border-radius: 10px;
   cursor: pointer;
   position: absolute;
   right: 16px;
-  top: 18px;
-  z-index: 400;
+  top: 180px;
+  z-index: 1000;
 }
 
 /* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
@@ -689,19 +735,42 @@ justify-items: center;
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 70px;           /* fica abaixo do cabeçalho */
-  right: 8px;
-  width: 92%;
-  max-width: 420px;
-  max-height: 72vh;
+  top: 275px;           /* fica abaixo do cabeçalho */
+  right: 0px;
+  width: 100%;
+  max-width: 260px;
+  max-height: 1880px;
   overflow-y: auto;
   display: block !important;   /* precisa sobrescrever o display:none !important */
-  z-index: 380;
+  z-index: 3800;
   transform-origin: top right;
   transform: translateY(-6px);
   transition: transform 160ms ease, opacity 160ms ease;
   opacity: 1;
   box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  border-radius: 15px;
+}
+  #controlPanel.mobile-open .tool-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #controlPanel.mobile-open .section-title {
+    font-size: 25px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  #controlPanel.mobile-open .tool-btn span,
+  #controlPanel.mobile-open .action-btn span {
+    font-size: 25px !important;
+  }
+@media (max-width: 1024px) {
+  #controlPanel.mobile-open #selectTool {
+    grid-column: auto !important; /* remove o span especial */
+    justify-self: stretch !important; /* ocupa toda a largura */
+  }
+
+  #controlPanel.mobile-open .tool-btn {
+    width: 100% !important; /* garante largura igual para todos */
+  }
 }
 
 /* efeito: quando abrir, faz um pequeno slide */
@@ -720,6 +789,202 @@ justify-items: center;
   #controlPanel.mobile-open { right: 6px; width: calc(100% - 12px); top: 66px; }
 }
 
+#mobileHelp {
+  position: fixed;
+  top: 290px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 68, 5, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 20px 30px;
+  font-size: 30px;
+  line-height: 1.4;
+  color: #e7ffe9;
+  text-align: center;
+  z-index: 1200;
+  animation: fadeIn 0.5s ease;
+}
+
+@media (min-width: 1025px) {
+  #mobileHelp {
+    display: none; /* só aparece no mobile */
+  }
+}
+@media (max-width: 1024px) {
+  .clock-card {
+    display: none !important;
+  }
+}
+/* ===== AJUSTE FINAL PARA NOTEBOOKS (1025px a 1366px) ===== */
+@media (min-width: 1025px) and (max-width: 1366px) {
+
+  #smartDashboard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    gap: 8px;
+    flex-wrap: nowrap; /* 🔹 garante tudo em uma linha */
+  }
+
+  /* Marca e relógio */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 30px;  /* 🔹 levemente menor pra caber */
+    flex-shrink: 1;   /* texto pode reduzir se precisar */
+    white-space: nowrap; /* 🔹 evita quebra de linha */
+  }
+
+  .clock-card {
+    width: 110px;
+    min-width: 110px;
+    flex-shrink: 0; /* 🔹 relógio mantém largura fixa */
+    text-align: center;
+  }
+
+  /* Métricas mais compactas */
+  .metrics-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 1;
+  }
+
+  .metric-card {
+    min-width: 85px;
+    padding: 6px 8px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+  }
+
+  .metric-label {
+    font-size: 13px;
+  }
+
+  /* Login à direita (mantendo visual original) */
+  .dashboard-section {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .auth-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  #roleSelect,
+  #userPass {
+    font-size: 14px;
+    padding: 6px 10px;
+    min-width: 90px;
+  }
+
+  .auth-section button {
+    padding: 6px 10px !important;
+  }
+  /* Painel da direita (ferramentas) */
+  #controlPanel {
+    width: 260px;          /* 🔹 antes era 320px */
+    top: 150px;
+    right: 16px;
+    padding: 14px;
+  }
+
+  /* Painel da esquerda (vagas) */
+  #vagasPanel {
+    width: 240px;          /* 🔹 antes era 300px */
+    top: 150px;
+    left: 16px;
+    padding: 14px;
+  }
+
+  /* Botões e grids */
+  .tool-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .tool-btn,
+  .action-btn {
+    font-size: 11px;
+    padding: 6px 8px !important;
+    border-radius: 8px;
+  }
+
+  .tool-btn i,
+  .action-btn i {
+    font-size: 14px;
+  }
+
+  /* Títulos */
+  .section-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Campos de busca e filtros */
+  .vaga-search {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .filter-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* Itens da lista de vagas */
+  .vaga-item {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .vaga-numero {
+    font-size: 12px;
+  }
+
+  .vaga-status {
+    font-size: 10px;
+  }
+    #cameraLockBtn {
+      position: absolute;
+      top: 85px; right: 60px;
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #ffffff !important;
+      padding: 8px;
+      border-radius: 12px; cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+    }
+
+}
+/* === Desativa blur e backdrop-filter apenas no iPhone === */
+@supports (-webkit-touch-callout: none) {
+  .glass-panel {
+    background: rgba(0, 68, 5, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+@supports (-webkit-touch-callout: none) {
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
 
 
   </style>
@@ -728,42 +993,48 @@ justify-items: center;
   <canvas id="renderCanvas"></canvas>
   
   <!-- Smart Dashboard Header -->
-  <div id="smartDashboard" class="glass-panel">
-    <div class="dashboard-section">
-      <div class="brand">
-        <i class="fas fa-cube"></i>
-        SMAMUS 3D
-      </div>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-value" id="totalVagas">0</div>
-          <div class="metric-label">Total</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-value" id="vagasLivres">0</div>
-          <div class="metric-label">Livres</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-value" id="vagasOcupadas">0</div>
-          <div class="metric-label">Ocupadas</div>
-        </div>
-      </div>
+<div id="smartDashboard" class="glass-panel">
+
+  <div class="brand">
+<div class="metric-card clock-card">
+  <div class="metric-value" id="horaAtual">--:--:--</div>
+  <div class="metric-label" id="dataAtual">--/--/----</div>
+</div>
+    <i class="fa fa-car"></i>
+    ESTACIONAMENTO SMAMUS
+  </div>
+
+  
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-value" id="totalVagas">0</div>
+      <div class="metric-label">Total</div>
     </div>
-    <div class="dashboard-section">
-      <div class="auth-section">
-        <div id="roleBadge" class="role-badge role-viewer">Usuário</div>
-        <select id="roleSelect" class="wizard-select" style="width: auto;">
-          <option value="viewer">Usuário</option>
-          <option value="operator">Operador</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <input type="password" id="userPass" class="wizard-input" placeholder="Senha" style="width: 120px;"/>
-        <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
-          <i class="fas fa-sign-in-alt"></i>
-        </button>
-      </div>
+    <div class="metric-card">
+      <div class="metric-value" id="vagasLivres">0</div>
+      <div class="metric-label">Livres</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="vagasOcupadas">0</div>
+      <div class="metric-label">Ocupadas</div>
     </div>
   </div>
+
+  <div class="dashboard-section">
+    <div class="auth-section">
+      <div id="roleBadge" class="role-badge role-viewer">Usuário</div>
+      <select id="roleSelect" class="wizard-select" style="width: auto;">
+        <option value="viewer">Usuário</option>
+        <option value="operator">Operador</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <input type="password" id="userPass" class="wizard-input" placeholder="Senha" style="width: 120px;"/>
+      <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
+        <i class="fas fa-sign-in-alt"></i>
+      </button>
+    </div>
+  </div>
+</div>
 
   <!-- Botão de Bloqueio de Câmera -->
   <div id="cameraLockBtn" class="unlocked" onclick="toggleCameraLock()">
@@ -829,26 +1100,31 @@ justify-items: center;
       </div>
     </div>
 
-    <div class="control-section" id="vagaActions">
-      <div class="section-title">
-        <i class="fas fa-cog"></i>
-        Ações da Vaga
-      </div>
-      <div class="tool-grid">
-        <div class="action-btn" onclick="ocuparVaga()">
-          <i class="fas fa-car"></i>
-          <span>Ocupar</span>
-        </div>
-        <div class="action-btn" onclick="liberarVaga()">
-          <i class="fas fa-car-side"></i>
-          <span>Liberar</span>
-        </div>
-        <div class="action-btn danger-btn" onclick="deleteVaga()">
-          <i class="fas fa-trash"></i>
-          <span>Excluir</span>
-        </div>
-      </div>
+<div class="control-section" id="vagaActions">
+  <div class="section-title">
+    <i class="fas fa-cog"></i>
+    Ações da Vaga
+  </div>
+  <div class="tool-grid">
+    <div class="action-btn" onclick="focusOnSelected()">
+      <i class="fas fa-eye"></i>
+      <span>Ver</span>
     </div>
+    <div class="action-btn" onclick="ocuparVaga()">
+      <i class="fas fa-car"></i>
+      <span>Ocupar</span>
+    </div>
+    <div class="action-btn" onclick="liberarVaga()">
+      <i class="fas fa-car-side"></i>
+      <span>Liberar</span>
+    </div>
+    <div class="action-btn danger-btn" onclick="deleteVaga()">
+      <i class="fas fa-trash"></i>
+      <span>Excluir</span>
+    </div>
+  </div>
+</div>
+
 
     <div class="control-section" id="batchActions">
       <div class="section-title">
@@ -959,8 +1235,16 @@ justify-items: center;
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
   </div>
+
+<!-- Ajuda de Navegação no Mobile -->
+<div id="mobileHelp">
+  <i class="fas fa-hand-pointer"></i> Use <b>1 dedo</b> para girar<br>
+  <i class="fas fa-hand-peace"></i> Use <b>2 dedos</b> para mover<br>
+  <i class="fas fa-search-plus"></i> Faça <b>pinça</b> para zoom
+</div>
+
 
 <script>
 
@@ -976,19 +1260,48 @@ const firebaseConfig = {
   measurementId: "G-H52V7SLBGE"
 };
 
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig, { experimentalForceLongPolling: true });
 const db = firebase.database();
+
+// 🔧 Ativa logs no console para debugar em iOS se algo der errado
+firebase.database.enableLogging(false);
+
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-const engine = new BABYLON.Engine(canvas, true);
+
+let engine;
+try {
+  // ✅ Criação segura do Babylon Engine, compatível com iPhone/Safari
+  engine = new BABYLON.Engine(canvas, true, {
+    preserveDrawingBuffer: true,
+    stencil: true
+  });
+} catch (e) {
+  console.error("Falha ao criar o engine Babylon:", e);
+  alert("Seu navegador não suporta WebGL. Tente atualizar o iOS ou usar o Chrome.");
+}
+
 let scene, camera;
+
 let vagas = [];
 let vagaSelecionada = null;
 let currentTool = 'select';
 let role = "viewer";
 let nextVagaNumber = 1;
 let pendingPosition = null;
+let carroCounter = 0;           // conta quantos carros já foram colocados
+let easterEggToggle = false;    // alterna entre car8 e car11
+
+// ===== Ajustes automáticos para Safari iOS =====
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+if (isIOS) {
+  console.log("⚙️ iOS detectado — aplicando otimizações");
+  BABYLON.Engine.ShadersRepository = ""; // evita bloqueios de shader externo
+}
+
+
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1004,10 +1317,10 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "admin123" };
+const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
-const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car9.glb","car10.glb"];
+const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
 const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
@@ -1054,27 +1367,56 @@ function initializeScene() {
   
   // Câmera mais intuitiva
 if (isMobile) {
-  camera = new BABYLON.UniversalCamera("mobileCam", new BABYLON.Vector3(60, 100, 10), scene);
+  // ArcRotateCamera ajustada para estilo Google Maps 3D
+  camera = new BABYLON.ArcRotateCamera(
+    "mobileCam",
+    BABYLON.Tools.ToRadians(158), // ângulo inicial horizontal
+    BABYLON.Tools.ToRadians(55),  // ângulo inicial vertical
+    550,                          // distância inicial
+    new BABYLON.Vector3(-115, 10, -27), // alvo inicial (pode ser o centro do estacionamento)
+    scene
+  );
+
   camera.attachControl(canvas, true);
 
-  // Rotação inicial (ângulos ajustados para ver o estacionamento)
-  camera.rotation.x = Math.PI / 5;  // inclinação pra baixo
-  camera.rotation.y =10.6;         // rotação lateral (ajusta até ficar igual à foto)
 
-  // Limitar altura para não afundar
-  scene.onBeforeRenderObservable.add(() => {
-    if (camera.position.y < 2) camera.position.y = 2;
-  });
+  // ===== Controles de toque =====
+  camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
+  camera.panningSensibility = 8;        // dois dedos = pan suave
+  camera.angularSensibilityX = 3000;     // rotação horizontal
+  camera.angularSensibilityY = 3000;     // rotação vertical
+  camera.pinchPrecision = 5;            // zoom de pinça mais suave
+  camera.wheelPrecision = 50;            // scroll também faz zoom
+
+  // ===== Limites =====
+  camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
+  camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
+  camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
+  camera.upperRadiusLimit = 600; // limite de afastamento
+  camera.panningSensibility = 40; // pan mais suave
+camera.panningInertia = 0.8;    // movimento suave
+camera.panningDistanceLimit = 1000; // evita "sumir" o estacionamento
+
+// Evita o alvo (target) ir abaixo do chão
+scene.registerBeforeRender(() => {
+  if (camera.target.y < 0) {
+    camera.target.y = 0;
+  }
+});
+
+  // ===== Inércia e suavidade =====
+  camera.inertia = 0.7;            // movimento fluido
+  camera.panningInertia = 0.6;     // pan suave
 } else {
     // Desktop: Universal Camera mais intuitiva
-    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(68, 80, -15), scene);
+    camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(28, 80, -15), scene);
     camera.rotation.x = Math.PI / 5;
-    camera.rotation.y = 10.5;
+    camera.rotation.y = 10.6;
     camera.keysUp.push(87); // W
     camera.keysDown.push(83); // S
     camera.keysLeft.push(65); // A
     camera.keysRight.push(68); // D
-    camera.speed = 1.5; // Movimento mais lento e controlado
+    camera.speed = 3;
     camera.angularSensibility = 2000; // Rotação mais suave
     camera.inputs.addMouseWheel();
     camera.wheelPrecision = 50;
@@ -1093,7 +1435,7 @@ canvas.addEventListener("wheel", (e) => {
   }
 });
 
-    const MIN_Y = 1, MAX_Y = 100;
+    const MIN_Y = 1, MAX_Y = 400;
     scene.registerBeforeRender(()=>{
       if(camera.position.y<MIN_Y) camera.position.y=MIN_Y;
       if(camera.position.y>MAX_Y) camera.position.y=MAX_Y;
@@ -1103,7 +1445,7 @@ canvas.addEventListener("wheel", (e) => {
   // Limites de câmera
   if (camera.lowerRadiusLimit !== undefined) {
     camera.lowerRadiusLimit = 20;
-    camera.upperRadiusLimit = 200;
+    camera.upperRadiusLimit = 300;
     camera.lowerBetaLimit = 0.1;
     camera.upperBetaLimit = Math.PI/2.2;
   }
@@ -1119,7 +1461,7 @@ canvas.addEventListener("wheel", (e) => {
   dirLight.intensity = 0.5;
   
   // Chão
-  const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 1000 }, scene);
+  const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 200, height: 200 }, scene);
   ground.position.y = -0.05;
   ground.isPickable = true;
   
@@ -1128,13 +1470,20 @@ canvas.addEventListener("wheel", (e) => {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
   
-  // Skybox
-  const skybox = BABYLON.MeshBuilder.CreateSphere("skyBox", { diameter: 1000 }, scene);
-  skybox.isPickable = false;
-  const skyboxMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMat.backFaceCulling = false;
-  skyboxMat.diffuseColor = new BABYLON.Color3(0.05, 0.08, 0.12);
-  skybox.material = skyboxMat;
+// Skybox com textura realista
+const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
+skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
+const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+skyboxMaterial.backFaceCulling = false;
+skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
+  "https://playground.babylonjs.com/textures/skybox",
+  scene
+);
+skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+skybox.material = skyboxMaterial;
+
   
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
@@ -1282,9 +1631,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-   // if (e.key === 'I' || e.key === 'i') {
-   //   setIsometricView();
-   // }
+    if (e.key === 'Y' || e.key === 'y') {
+      setIsometricView();
+    }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -1305,48 +1654,51 @@ function setupKeyboardControls() {
   });
 }
 
-// ===== CONTROLES DE CÂMERA MELHORADOS =====
 function resetCamera() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
-    camera.radius = 80;
-    camera.alpha = -Math.PI/4;
-    camera.beta = Math.PI/3;
+  if (camera.getClassName() === "ArcRotateCamera") {
+    // Mobile
+    camera.setTarget(new BABYLON.Vector3(-115, 10, -27));
+    camera.alpha = BABYLON.Tools.ToRadians(158);
+    camera.beta = BABYLON.Tools.ToRadians(55);
+    camera.radius = 550;
   } else {
-    camera.position = new BABYLON.Vector3(60, 35, -10);
-    camera.rotation.x = Math.PI / 8;
-    camera.rotation.y = 9.8;
+    // Desktop
+    camera.position = new BABYLON.Vector3(24, 80, -15);
+    camera.rotation.x = Math.PI / 5;
+    camera.rotation.y = 10.6;
   }
   NotificationSystem.show("Câmera resetada", "info", 2000);
 }
 
+
 function setTopView() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
-    camera.radius = 120;
+  if (camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(-105, 0, -38));
     camera.alpha = 0;
-    camera.beta = 0.1; // Quase do topo
+    camera.beta = Math.PI / 10;   // visão de cima
+    camera.radius = 200;
   } else {
-    camera.position = new BABYLON.Vector3(40, 100, 0);
-    camera.rotation.x = Math.PI / 2;
-    camera.rotation.y = 0;
+    camera.position = new BABYLON.Vector3(-95, 450, -40);
+    camera.setTarget(new BABYLON.Vector3(-95, 0, -40));
   }
   NotificationSystem.show("Vista superior ativada", "info", 2000);
 }
 
 function setIsometricView() {
-  if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-    camera.setTarget(new BABYLON.Vector3(40, 0, 0));
-    camera.radius = 100;
-    camera.alpha = -Math.PI/4;
-    camera.beta = Math.PI/4;
+  if (camera.getClassName() === "ArcRotateCamera") {
+    camera.setTarget(new BABYLON.Vector3(-25, 50, -23));
+    camera.alpha = Math.PI / 15;  
+    camera.beta = Math.PI / 3;    // inclinado
+    camera.radius = 170;
   } else {
-    camera.position = new BABYLON.Vector3(80, 50, 80);
-    camera.rotation.x = Math.PI / 6;
-    camera.rotation.y = -Math.PI / 4;
+    camera.position = new BABYLON.Vector3(-220, 150, -100);
+    camera.setTarget(new BABYLON.Vector3(-55, 20, -20));
+    camera.rotation.x = Math.PI / 5;
+    camera.rotation.y = 1;
   }
   NotificationSystem.show("Vista isométrica ativada", "info", 2000);
 }
+
 
 function focusOnSelected() {
   if (!vagaSelecionada) {
@@ -1360,13 +1712,21 @@ function focusOnSelected() {
     camera.setTarget(target);
     camera.radius = 40;
   } else {
-    const distance = 25;
-    const angle = camera.rotation.y;
-    const height = 15;
-    
-    camera.position.x = target.x + Math.cos(angle) * distance;
-    camera.position.z = target.z + Math.sin(angle) * distance;
-    camera.position.y = target.y + height;
+const distance = 20;   // distância atrás do objeto
+    const height = 15;     // altura da câmera
+
+    // pega a direção atual da câmera (para saber o ângulo de visão)
+    const forward = camera.getDirection(BABYLON.Axis.Z);
+
+    // reposiciona a câmera "atrás" do alvo mantendo distância
+    camera.position = new BABYLON.Vector3(
+      target.x - forward.x * distance,
+      target.y + height,
+      target.z - forward.z * distance
+    );
+
+    // faz a câmera olhar para a vaga
+    camera.setTarget(target);
   }
   
   NotificationSystem.show(`Focado na ${vagaSelecionada.numero}`, "info", 2000);
@@ -1385,7 +1745,7 @@ function toggleTool(toolName) {
   if (toolName === 'create') {
     showCreationWizard();
   } else if (toolName === 'edit') {
-    if (vagaSelecionada && (role === 'admin' || role === 'operator')) {
+    if (vagaSelecionada && (role === 'admin')) {
       startFreeEdit();
     } else {
       NotificationSystem.show("Selecione uma vaga primeiro", "warning");
@@ -1512,7 +1872,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
@@ -1685,7 +2045,7 @@ function selectVaga(vaga) {
   updateVagasList();
   NotificationSystem.show(`Vaga ${vaga.numero} selecionada`, "info", 2000);
   
-  if (isCtrlPressed && (role === 'admin' || role === 'operator') && !isEditingMode) {
+  if (isCtrlPressed && (role === 'admin') && !isEditingMode) {
     currentTool = 'edit';
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('editTool').classList.add('active');
@@ -1693,22 +2053,33 @@ function selectVaga(vaga) {
   }
 }
 
+//EASTEREGG
+function escolherCarroNormal() {
+  carroCounter++;
+  
+  if (carroCounter % 150 === 0) {
+    easterEggToggle = !easterEggToggle;
+    return easterEggToggle ? "car11.glb" : "car8.glb";
+  }
+  
+  return CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+}
+
+
 // ===== OPERAÇÕES DE VAGA =====
 async function ocuparVaga() {
   if (role === "viewer" || !vagaSelecionada || vagaSelecionada.ocupada) return;
   
   vagaSelecionada.ocupada = true;
-  vagaSelecionada.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+  vagaSelecionada.carModel = escolherCarroNormal();
 
-// Fixar carpo.glb nas vagas 13 e 14
+
+// Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 13 || _num === 14) {
+if (_num === 14 || _num === 15) {
   vagaSelecionada.carModel = 'carpo.glb';
 }
 
-
-
-  
   if (vagaSelecionada.mesh.material) {
     vagaSelecionada.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
     if (!isEditingMode) {
@@ -1810,11 +2181,12 @@ async function ocuparTodas() {
   for (let vaga of livres) {
     try {
       vaga.ocupada = true;
-      vaga.carModel = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+      vaga.carModel = escolherCarroNormal();
 
-// Fixar carpo.glb nas vagas 13 e 14
+
+// Fixar carpo.glb nas vagas 14 e 15
 const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 13 || _num === 14) {
+if (_num === 14 || _num === 15) {
   vaga.carModel = 'carpo.glb';
 }
 
@@ -2022,40 +2394,29 @@ async function carregarCarroNormalizado(vaga, modelFile) {
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
   scene.onPointerObservable.add((pointerInfo) => {
-    const evt = pointerInfo.event;
-    
     switch (pointerInfo.type) {
-      case BABYLON.PointerEventTypes.POINTERDOWN:
-        if (evt.button === 0) {
-          const pick = scene.pick(scene.pointerX, scene.pointerY);
-          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
-          
-          if (pick.hit) {
-            if (currentTool === 'create' && role !== 'viewer') {
-              pendingPosition = pick.pickedPoint.clone();
-              pendingPosition.y += 0.01;
-              
-              if (document.getElementById('creationWizard').style.display === 'none') {
-                showCreationWizard();
-              }
-              
-              NotificationSystem.show("Posição definida. Configure no assistente.", "info");
-              return;
-            }
-            
-            const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
-            if (vaga) {
-              selectVaga(vaga);
-              
-              if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
-                isDragging = true;
-                canvas.style.cursor = 'move';
-                if (cameraWasAttached && !isCameraLocked) {
-                  camera.detachControl(canvas);
-                  cameraWasAttached = false;
-                }
-              }
-            }
+      case BABYLON.PointerEventTypes.POINTERPICK:
+        const pickResult = pointerInfo.pickInfo;
+        if (!pickResult.hit) return;
+
+        const pickedMesh = pickResult.pickedMesh;
+        const vaga = vagas.find(v => v.mesh === pickedMesh);
+
+        if (vaga) {
+          // Clicou em uma vaga → seleciona normalmente
+          selectVaga(vaga);
+        } else {
+          // Clicou fora de qualquer vaga → deseleciona
+          if (vagaSelecionada) {
+            // Restaura cor da vaga anterior
+            const color = vagaSelecionada.ocupada
+              ? new BABYLON.Color3(0.8, 0.2, 0.2)
+              : new BABYLON.Color3(0, 0.8, 0.3);
+            vagaSelecionada.mesh.material.emissiveColor = color.scale(0.3);
+
+            vagaSelecionada = null;
+            updateVagasList();
+            NotificationSystem.show("Nenhuma vaga selecionada", "info", 1500);
           }
         }
         break;
@@ -2136,6 +2497,11 @@ function moveCamera(dir, continuous = false) {
       camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
       break;
   }
+  
+  document.getElementById('quickActions').classList.remove('show');
+  updateNavigationHelp();
+  updateVagasList();
+}
 
   if (continuous && !moveInterval) {
     moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
@@ -2155,7 +2521,8 @@ function stopMoveCamera() {
 function login() {
   const selected = document.getElementById("roleSelect").value;
   const pass = document.getElementById("userPass").value;
-  
+
+
   if (selected === "viewer") {
     role = "viewer";
     NotificationSystem.show("Modo Visualizador ativado", "info");
@@ -2208,11 +2575,11 @@ function updatePermissions() {
     batchActions.style.display = 'block';
     cameraLockBtn.style.display = 'block';
   }
-  
+
   ['createTool', 'editTool', 'gridTool'].forEach(toolId => {
     const tool = document.getElementById(toolId);
     if (toolId === 'editTool') {
-      tool.style.display = role !== 'viewer' ? 'block' : 'none';
+      tool.style.display = role !== 'viewer' && role !== 'operator' ? 'block' : 'none';
     } else {
       tool.style.display = role === 'admin' ? 'block' : 'none';
     }
@@ -2239,44 +2606,49 @@ function updateVagasList() {
   });
   
   container.innerHTML = '';
+
+filteredVagas.forEach(vaga => {
+  const isEditing = isEditingMode && vaga === vagaSelecionada;
+  const item = document.createElement('div');
+  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
   
-  filteredVagas.forEach(vaga => {
-    const isEditing = isEditingMode && vaga === vagaSelecionada;
-    const item = document.createElement('div');
-    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
-    
-    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-    
-    item.innerHTML = `
-      <div class="vaga-header">
-        <div class="vaga-numero">${vaga.numero}</div>
-        <div class="vaga-status ${statusClass}">
-          ${statusText}
-        </div>
+  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+  
+  item.innerHTML = `
+    <div class="vaga-header">
+      <div class="vaga-numero">${vaga.numero}</div>
+      <div class="vaga-status ${statusClass}">
+        ${statusText}
       </div>
+    </div>
+
+    <div class="vaga-actions">
+      <!-- 🔹 Botão Ver: sempre aparece -->
+      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+        <i class="fas fa-eye"></i> Ver
+      </button>
+
+      <!-- 🔹 Outros botões: só se não for viewer -->
       ${role !== 'viewer' && !isEditing ? `
-        <div class="vaga-actions">
-          <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}'))">
-            <i class="fas fa-eye"></i> Ver
+        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+        </button>
+        ${role === 'admin' ? `
+          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+            <i class="fas fa-edit"></i> Editar
           </button>
-          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
-          </button>
-          ${role !== 'viewer' ? `
-            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-          ` : ''}
-        </div>
+        ` : ''}
       ` : ''}
-    `;
-    
-    item.addEventListener('click', () => selectVaga(vaga));
-    container.appendChild(item);
-  });
+    </div>
+  `;
+
+  item.addEventListener('click', () => selectVaga(vaga));
+  container.appendChild(item);
+});
 }
+
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
@@ -2393,9 +2765,9 @@ db.ref('vagas').on('value', snapshot => {
         numero
       };
 
-	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
 const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
-if ((_numCriada === 13 || _numCriada === 14) && vaga.ocupada) {
+if ((_numCriada === 14 || _numCriada === 15) && vaga.ocupada) {
   vaga.carModel = 'carpo.glb';
 }
 
@@ -2428,9 +2800,9 @@ if ((_numCriada === 13 || _numCriada === 14) && vaga.ocupada) {
       vaga.carModel = vData.carModel || null;
       vaga.numero = vData.numero || vaga.numero || null;
 	
-	// Se for vaga 13 ou 14 e estiver ocupada, força carpo.glb
+	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
 const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if ((_numAtual === 13 || _numAtual === 14) && vaga.ocupada) {
+if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
   vaga.carModel = 'carpo.glb';
 }
 
@@ -2472,12 +2844,26 @@ if ((_numAtual === 13 || _numAtual === 14) && vaga.ocupada) {
 });
 
 // ===== INICIALIZAÇÃO =====
-initializeScene();
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    // Inicializa a cena apenas quando o DOM estiver pronto (necessário para iOS)
+    initializeScene();
 
-engine.runRenderLoop(() => scene.render());
+    // Render loop seguro (só renderiza se a cena estiver carregada)
+    engine.runRenderLoop(() => {
+      if (scene && scene.isReady()) {
+        scene.render();
+      }
+    });
 
-window.addEventListener("resize", () => {
-  engine.resize();
+    // Redimensiona o canvas quando a tela mudar
+    window.addEventListener("resize", () => {
+      engine.resize();
+    });
+  } catch (err) {
+    console.error("Erro ao inicializar a cena:", err);
+    alert("Erro ao carregar o sistema. Verifique se o navegador suporta WebGL.");
+  }
 });
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -2547,6 +2933,28 @@ document.addEventListener("DOMContentLoaded", function() {
       controlPanel.classList.add("showing");
     }
   });
+  
+  updateUI();
+});
+
+// ===== INICIALIZAÇÃO =====
+initializeScene();
+
+engine.runRenderLoop(() => scene.render());
+
+window.addEventListener("resize", () => {
+  engine.resize();
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Toggle do painel mobile
+document.querySelectorAll('#vagasPanel .mobile-handle, #controlPanel .mobile-handle')
+  .forEach(handle => {
+    handle.addEventListener('click', () => {
+      handle.parentElement.classList.toggle('expanded');
+    });
+  });
 
   // fechar ao clicar fora (apenas quando aberto)
   document.addEventListener("click", (ev) => {
@@ -2573,9 +2981,31 @@ document.addEventListener("DOMContentLoaded", function() {
   // console.log("hamburger ready", hamburgerBtn, controlPanel);
 });
 
+// ===== RELÓGIO =====
+function atualizarRelogio() {
+  const agora = new Date();
+  const horas = String(agora.getHours()).padStart(2, '0');
+  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const segundos = String(agora.getSeconds()).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const ano = agora.getFullYear();
 
+  document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
+  document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
+}
 
+// Atualiza o relógio a cada segundo
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
 
+    const userPassInput = document.getElementById("userPass");
+
+    userPassInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        login();
+      }
+    });
 </script>
 </body>
 </html>
