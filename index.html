@@ -1217,7 +1217,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar 
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -1587,9 +1587,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-   // if (e.key === 'I' || e.key === 'i') {
-   //   setIsometricView();
-   // }
+    if (e.key === 'Y' || e.key === 'y') {
+      setIsometricView();
+    }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -1828,7 +1828,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
