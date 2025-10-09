@@ -6,6 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Sistema de Estacionamento - SMAMUS 3D</title>
+
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -2496,6 +2497,11 @@ function moveCamera(dir, continuous = false) {
       camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
       break;
   }
+  
+  document.getElementById('quickActions').classList.remove('show');
+  updateNavigationHelp();
+  updateVagasList();
+}
 
   if (continuous && !moveInterval) {
     moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
@@ -2926,6 +2932,28 @@ document.addEventListener("DOMContentLoaded", function() {
       void controlPanel.offsetWidth;
       controlPanel.classList.add("showing");
     }
+  });
+  
+  updateUI();
+});
+
+// ===== INICIALIZAÇÃO =====
+initializeScene();
+
+engine.runRenderLoop(() => scene.render());
+
+window.addEventListener("resize", () => {
+  engine.resize();
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Toggle do painel mobile
+document.querySelectorAll('#vagasPanel .mobile-handle, #controlPanel .mobile-handle')
+  .forEach(handle => {
+    handle.addEventListener('click', () => {
+      handle.parentElement.classList.toggle('expanded');
+    });
   });
 
   // fechar ao clicar fora (apenas quando aberto)
