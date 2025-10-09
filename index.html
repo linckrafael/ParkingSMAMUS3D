@@ -1242,13 +1242,30 @@ const firebaseConfig = {
   measurementId: "G-H52V7SLBGE"
 };
 
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig, { experimentalForceLongPolling: true });
 const db = firebase.database();
+
+// 🔧 Ativa logs no console para debugar em iOS se algo der errado
+firebase.database.enableLogging(false);
+
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-const engine = new BABYLON.Engine(canvas, true);
+
+let engine;
+try {
+  // ✅ Criação segura do Babylon Engine, compatível com iPhone/Safari
+  engine = new BABYLON.Engine(canvas, true, {
+    preserveDrawingBuffer: true,
+    stencil: true
+  });
+} catch (e) {
+  console.error("Falha ao criar o engine Babylon:", e);
+  alert("Seu navegador não suporta WebGL. Tente atualizar o iOS ou usar o Chrome.");
+}
+
 let scene, camera;
+
 let vagas = [];
 let vagaSelecionada = null;
 let currentTool = 'select';
@@ -1257,6 +1274,15 @@ let nextVagaNumber = 1;
 let pendingPosition = null;
 let carroCounter = 0;           // conta quantos carros já foram colocados
 let easterEggToggle = false;    // alterna entre car8 e car11
+
+// ===== Ajustes automáticos para Safari iOS =====
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+if (isIOS) {
+  console.log("⚙️ iOS detectado — aplicando otimizações");
+  BABYLON.Engine.ShadersRepository = ""; // evita bloqueios de shader externo
+}
+
 
 
 // ===== CONTROLE DE EDIÇÃO =====
@@ -2795,12 +2821,26 @@ if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
 });
 
 // ===== INICIALIZAÇÃO =====
-initializeScene();
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    // Inicializa a cena apenas quando o DOM estiver pronto (necessário para iOS)
+    initializeScene();
 
-engine.runRenderLoop(() => scene.render());
+    // Render loop seguro (só renderiza se a cena estiver carregada)
+    engine.runRenderLoop(() => {
+      if (scene && scene.isReady()) {
+        scene.render();
+      }
+    });
 
-window.addEventListener("resize", () => {
-  engine.resize();
+    // Redimensiona o canvas quando a tela mudar
+    window.addEventListener("resize", () => {
+      engine.resize();
+    });
+  } catch (err) {
+    console.error("Erro ao inicializar a cena:", err);
+    alert("Erro ao carregar o sistema. Verifique se o navegador suporta WebGL.");
+  }
 });
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
