@@ -1082,26 +1082,31 @@
       </div>
     </div>
 
-    <div class="control-section" id="vagaActions">
-      <div class="section-title">
-        <i class="fas fa-cog"></i>
-        Ações da Vaga
-      </div>
-      <div class="tool-grid">
-        <div class="action-btn" onclick="ocuparVaga()">
-          <i class="fas fa-car"></i>
-          <span>Ocupar</span>
-        </div>
-        <div class="action-btn" onclick="liberarVaga()">
-          <i class="fas fa-car-side"></i>
-          <span>Liberar</span>
-        </div>
-        <div class="action-btn danger-btn" onclick="deleteVaga()">
-          <i class="fas fa-trash"></i>
-          <span>Excluir</span>
-        </div>
-      </div>
+<div class="control-section" id="vagaActions">
+  <div class="section-title">
+    <i class="fas fa-cog"></i>
+    Ações da Vaga
+  </div>
+  <div class="tool-grid">
+    <div class="action-btn" onclick="focusOnSelected()">
+      <i class="fas fa-eye"></i>
+      <span>Ver</span>
     </div>
+    <div class="action-btn" onclick="ocuparVaga()">
+      <i class="fas fa-car"></i>
+      <span>Ocupar</span>
+    </div>
+    <div class="action-btn" onclick="liberarVaga()">
+      <i class="fas fa-car-side"></i>
+      <span>Liberar</span>
+    </div>
+    <div class="action-btn danger-btn" onclick="deleteVaga()">
+      <i class="fas fa-trash"></i>
+      <span>Excluir</span>
+    </div>
+  </div>
+</div>
+
 
     <div class="control-section" id="batchActions">
       <div class="section-title">
@@ -2552,45 +2557,49 @@ function updateVagasList() {
   });
   
   container.innerHTML = '';
-  
-  filteredVagas.forEach(vaga => {
-    const isEditing = isEditingMode && vaga === vagaSelecionada;
-    const item = document.createElement('div');
-    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
-    
-    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-    
-    item.innerHTML = `
-      <div class="vaga-header">
-        <div class="vaga-numero">${vaga.numero}</div>
-        <div class="vaga-status ${statusClass}">
-          ${statusText}
-        </div>
-      </div>
-      ${role !== 'viewer' && !isEditing ? `
-        <div class="vaga-actions">
-<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-  <i class="fas fa-eye"></i> Ver
-</button>
 
-          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+filteredVagas.forEach(vaga => {
+  const isEditing = isEditingMode && vaga === vagaSelecionada;
+  const item = document.createElement('div');
+  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+  
+  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+  
+  item.innerHTML = `
+    <div class="vaga-header">
+      <div class="vaga-numero">${vaga.numero}</div>
+      <div class="vaga-status ${statusClass}">
+        ${statusText}
+      </div>
+    </div>
+
+    <div class="vaga-actions">
+      <!-- 🔹 Botão Ver: sempre aparece -->
+      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+        <i class="fas fa-eye"></i> Ver
+      </button>
+
+      <!-- 🔹 Outros botões: só se não for viewer -->
+      ${role !== 'viewer' && !isEditing ? `
+        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+        </button>
+        ${role === 'admin' ? `
+          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+            <i class="fas fa-edit"></i> Editar
           </button>
-          ${role !== 'viewer' && role !== 'operator' ? `
-            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-          ` : ''}
-        </div>
+        ` : ''}
       ` : ''}
-    `;
-    
-    item.addEventListener('click', () => selectVaga(vaga));
-    container.appendChild(item);
-  });
+    </div>
+  `;
+
+  item.addEventListener('click', () => selectVaga(vaga));
+  container.appendChild(item);
+});
 }
+
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
