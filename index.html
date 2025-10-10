@@ -2,11 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <title>Sistema de Estacionamento - SMAMUS 3D</title>
-
+  <title>Smamus 3D - Sistema Inteligente de Estacionamento</title>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -971,20 +967,6 @@
     }
 
 }
-/* === Desativa blur e backdrop-filter apenas no iPhone === */
-@supports (-webkit-touch-callout: none) {
-  .glass-panel {
-    background: rgba(0, 68, 5, 0.95) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-}
-@supports (-webkit-touch-callout: none) {
-  .glass-panel {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-}
 
 
   </style>
@@ -1100,31 +1082,26 @@
       </div>
     </div>
 
-<div class="control-section" id="vagaActions">
-  <div class="section-title">
-    <i class="fas fa-cog"></i>
-    Ações da Vaga
-  </div>
-  <div class="tool-grid">
-    <div class="action-btn" onclick="focusOnSelected()">
-      <i class="fas fa-eye"></i>
-      <span>Ver</span>
+    <div class="control-section" id="vagaActions">
+      <div class="section-title">
+        <i class="fas fa-cog"></i>
+        Ações da Vaga
+      </div>
+      <div class="tool-grid">
+        <div class="action-btn" onclick="ocuparVaga()">
+          <i class="fas fa-car"></i>
+          <span>Ocupar</span>
+        </div>
+        <div class="action-btn" onclick="liberarVaga()">
+          <i class="fas fa-car-side"></i>
+          <span>Liberar</span>
+        </div>
+        <div class="action-btn danger-btn" onclick="deleteVaga()">
+          <i class="fas fa-trash"></i>
+          <span>Excluir</span>
+        </div>
+      </div>
     </div>
-    <div class="action-btn" onclick="ocuparVaga()">
-      <i class="fas fa-car"></i>
-      <span>Ocupar</span>
-    </div>
-    <div class="action-btn" onclick="liberarVaga()">
-      <i class="fas fa-car-side"></i>
-      <span>Liberar</span>
-    </div>
-    <div class="action-btn danger-btn" onclick="deleteVaga()">
-      <i class="fas fa-trash"></i>
-      <span>Excluir</span>
-    </div>
-  </div>
-</div>
-
 
     <div class="control-section" id="batchActions">
       <div class="section-title">
@@ -1235,7 +1212,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar 
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -1260,30 +1237,13 @@ const firebaseConfig = {
   measurementId: "G-H52V7SLBGE"
 };
 
-firebase.initializeApp(firebaseConfig, { experimentalForceLongPolling: true });
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
-// 🔧 Ativa logs no console para debugar em iOS se algo der errado
-firebase.database.enableLogging(false);
-
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-
-let engine;
-try {
-  // ✅ Criação segura do Babylon Engine, compatível com iPhone/Safari
-  engine = new BABYLON.Engine(canvas, true, {
-    preserveDrawingBuffer: true,
-    stencil: true
-  });
-} catch (e) {
-  console.error("Falha ao criar o engine Babylon:", e);
-  alert("Seu navegador não suporta WebGL. Tente atualizar o iOS ou usar o Chrome.");
-}
-
+const engine = new BABYLON.Engine(canvas, true);
 let scene, camera;
-
 let vagas = [];
 let vagaSelecionada = null;
 let currentTool = 'select';
@@ -1292,15 +1252,6 @@ let nextVagaNumber = 1;
 let pendingPosition = null;
 let carroCounter = 0;           // conta quantos carros já foram colocados
 let easterEggToggle = false;    // alterna entre car8 e car11
-
-// ===== Ajustes automáticos para Safari iOS =====
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-if (isIOS) {
-  console.log("⚙️ iOS detectado — aplicando otimizações");
-  BABYLON.Engine.ShadersRepository = ""; // evita bloqueios de shader externo
-}
-
 
 
 // ===== CONTROLE DE EDIÇÃO =====
@@ -1631,9 +1582,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-    if (e.key === 'Y' || e.key === 'y') {
-      setIsometricView();
-    }
+   // if (e.key === 'I' || e.key === 'i') {
+   //   setIsometricView();
+   // }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -1872,7 +1823,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
@@ -2497,11 +2448,6 @@ function moveCamera(dir, continuous = false) {
       camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
       break;
   }
-  
-  document.getElementById('quickActions').classList.remove('show');
-  updateNavigationHelp();
-  updateVagasList();
-}
 
   if (continuous && !moveInterval) {
     moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
@@ -2606,49 +2552,45 @@ function updateVagasList() {
   });
   
   container.innerHTML = '';
-
-filteredVagas.forEach(vaga => {
-  const isEditing = isEditingMode && vaga === vagaSelecionada;
-  const item = document.createElement('div');
-  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
   
-  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-  
-  item.innerHTML = `
-    <div class="vaga-header">
-      <div class="vaga-numero">${vaga.numero}</div>
-      <div class="vaga-status ${statusClass}">
-        ${statusText}
+  filteredVagas.forEach(vaga => {
+    const isEditing = isEditingMode && vaga === vagaSelecionada;
+    const item = document.createElement('div');
+    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+    
+    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+    
+    item.innerHTML = `
+      <div class="vaga-header">
+        <div class="vaga-numero">${vaga.numero}</div>
+        <div class="vaga-status ${statusClass}">
+          ${statusText}
+        </div>
       </div>
-    </div>
-
-    <div class="vaga-actions">
-      <!-- 🔹 Botão Ver: sempre aparece -->
-      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-        <i class="fas fa-eye"></i> Ver
-      </button>
-
-      <!-- 🔹 Outros botões: só se não for viewer -->
       ${role !== 'viewer' && !isEditing ? `
-        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
-        </button>
-        ${role === 'admin' ? `
-          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-            <i class="fas fa-edit"></i> Editar
+        <div class="vaga-actions">
+<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+  <i class="fas fa-eye"></i> Ver
+</button>
+
+          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
           </button>
-        ` : ''}
+          ${role !== 'viewer' && role !== 'operator' ? `
+            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+              <i class="fas fa-edit"></i> Editar
+            </button>
+          ` : ''}
+        </div>
       ` : ''}
-    </div>
-  `;
-
-  item.addEventListener('click', () => selectVaga(vaga));
-  container.appendChild(item);
-});
+    `;
+    
+    item.addEventListener('click', () => selectVaga(vaga));
+    container.appendChild(item);
+  });
 }
-
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
@@ -2844,26 +2786,12 @@ if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
 });
 
 // ===== INICIALIZAÇÃO =====
-window.addEventListener('DOMContentLoaded', () => {
-  try {
-    // Inicializa a cena apenas quando o DOM estiver pronto (necessário para iOS)
-    initializeScene();
+initializeScene();
 
-    // Render loop seguro (só renderiza se a cena estiver carregada)
-    engine.runRenderLoop(() => {
-      if (scene && scene.isReady()) {
-        scene.render();
-      }
-    });
+engine.runRenderLoop(() => scene.render());
 
-    // Redimensiona o canvas quando a tela mudar
-    window.addEventListener("resize", () => {
-      engine.resize();
-    });
-  } catch (err) {
-    console.error("Erro ao inicializar a cena:", err);
-    alert("Erro ao carregar o sistema. Verifique se o navegador suporta WebGL.");
-  }
+window.addEventListener("resize", () => {
+  engine.resize();
 });
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -2932,28 +2860,6 @@ document.addEventListener("DOMContentLoaded", function() {
       void controlPanel.offsetWidth;
       controlPanel.classList.add("showing");
     }
-  });
-  
-  updateUI();
-});
-
-// ===== INICIALIZAÇÃO =====
-initializeScene();
-
-engine.runRenderLoop(() => scene.render());
-
-window.addEventListener("resize", () => {
-  engine.resize();
-});
-
-canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// Toggle do painel mobile
-document.querySelectorAll('#vagasPanel .mobile-handle, #controlPanel .mobile-handle')
-  .forEach(handle => {
-    handle.addEventListener('click', () => {
-      handle.parentElement.classList.toggle('expanded');
-    });
   });
 
   // fechar ao clicar fora (apenas quando aberto)
