@@ -1212,7 +1212,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar 
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -1823,7 +1823,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
@@ -2572,46 +2572,50 @@ function updateVagasList() {
     return numA - numB;
   });
   
-  container.innerHTML = '';
-  
-  filteredVagas.forEach(vaga => {
-    const isEditing = isEditingMode && vaga === vagaSelecionada;
-    const item = document.createElement('div');
-    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
-    
-    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-    
-    item.innerHTML = `
-      <div class="vaga-header">
-        <div class="vaga-numero">${vaga.numero}</div>
-        <div class="vaga-status ${statusClass}">
-          ${statusText}
-        </div>
-      </div>
-      ${role !== 'viewer' && !isEditing ? `
-        <div class="vaga-actions">
-<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-  <i class="fas fa-eye"></i> Ver
-</button>
+ container.innerHTML = '';
 
-          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+filteredVagas.forEach(vaga => {
+  const isEditing = isEditingMode && vaga === vagaSelecionada;
+  const item = document.createElement('div');
+  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+  
+  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+  
+  item.innerHTML = `
+    <div class="vaga-header">
+      <div class="vaga-numero">${vaga.numero}</div>
+      <div class="vaga-status ${statusClass}">
+        ${statusText}
+      </div>
+    </div>
+
+    <div class="vaga-actions">
+      <!-- 🔹 Botão Ver: sempre aparece -->
+      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+        <i class="fas fa-eye"></i> Ver
+      </button>
+
+      <!-- 🔹 Outros botões: só se não for viewer -->
+      ${role !== 'viewer' && !isEditing ? `
+        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+        </button>
+        ${role === 'admin' ? `
+          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+            <i class="fas fa-edit"></i> Editar
           </button>
-          ${role !== 'viewer' && role !== 'operator' ? `
-            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-          ` : ''}
-        </div>
+        ` : ''}
       ` : ''}
-    `;
-    
-    item.addEventListener('click', () => selectVaga(vaga));
-    container.appendChild(item);
-  });
+    </div>
+  `;
+
+  item.addEventListener('click', () => selectVaga(vaga));
+  container.appendChild(item);
+});
 }
+
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
