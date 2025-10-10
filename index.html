@@ -35,7 +35,7 @@
       border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
-      color: #f0e2e3;
+      color: #e2e8f0;
       z-index: 20;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -47,10 +47,10 @@
 
     /* ===== HEADER DASHBOARD ===== */
     #smartDashboard {
-      top: 0px; left: 0px; right: 0px;
+      top: 20px; left: 20px; right: 20px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 24px;
-      gap:5px;
+      padding: 0px 24px;
+      gap:10px;
     }
 
     .dashboard-section {
@@ -58,39 +58,9 @@
       
     }
 
-#horaAtual {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-#dataAtual {
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-.brand .clock-card #dataAtual {
-  background: none !important;
-  -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
-  color: #a7ffb0 !important;
-  opacity: 0.9;
-  font-size: 14px;
-}
-
-.clock-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 130px; /* 🔹 largura fixa do bloco do relógio */
-  min-width: 130px;
-  text-align: center;
-}
-
-
     .brand {
       display: flex; align-items: center; gap: 30px;
-      font-size: 40px;
+      font-size: 30px;
       font-weight: 700;
       white-space: wrap;
       background: linear-gradient(135deg, #039403, #00FF55, #039403);
@@ -98,10 +68,9 @@
       -webkit-text-fill-color: transparent;
     }
 
-
     .metrics-grid {
       display: flex;
-      gap: 5px;
+      gap: 10px;
       align-items: center;
       justify-content: space-between;
     }
@@ -115,14 +84,14 @@
     }
 
     .metric-value {
-      font-size: 20px; font-weight: 700;
+      font-size: 30px; font-weight: 700;
       background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 20px; opacity: 0.8; margin-top: 4px;
+      font-size: 30px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
 
     }
@@ -209,10 +178,10 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 105px; right: 60px;
-      background: rgba(51, 65, 85, 0.8); 
+      top: 130px; right: 360px;
+      background: rgba(51, 65, 85, 0.8);
       border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #ffffff !important; padding: 10px;
+      color: #e2e8f0; padding: 12px;
       border-radius: 12px; cursor: pointer;
       transition: all 0.3s ease;
       z-index: 30;
@@ -493,7 +462,7 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 103px; right: 20px;
+      position: fixed; top: 120px; right: 20px;
       background: rgba(51, 165, 85, 0.3);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
@@ -551,16 +520,15 @@
       min-width: auto;
     }
 
-
 .metric-value {
-      font-size: 35px; font-weight: 700;
+      font-size: 60px; font-weight: 700;
       background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 25px; opacity: 0.8; margin-top: 4px;
+      font-size: 35px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
 
     }
@@ -568,7 +536,7 @@
   }
 
   .brand {
-    font-size: 58px; /* mais destaque */
+    font-size: 48px; /* mais destaque */
     font-weight: bold;
     justify-content: center;
   }
@@ -623,6 +591,7 @@
   }
 
 }
+
 
 
     /* ===== UTILITIES ===== */
@@ -712,14 +681,14 @@
   background: rgba(51,165,85,0.6);
   border: 1px solid rgba(148,163,184,0.15);
   color: #e7ffe9;
-  font-size: 25px;
-  padding: 20px 25px;
+  font-size: 20px;
+  padding: 28px 30px;
   border-radius: 10px;
   cursor: pointer;
   position: absolute;
   right: 16px;
-  top: 180px;
-  z-index: 1000;
+  top: 18px;
+  z-index: 4000;
 }
 
 /* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
@@ -731,42 +700,19 @@
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 275px;           /* fica abaixo do cabeçalho */
-  right: 0px;
+  top: 330px;           /* fica abaixo do cabeçalho */
+  right: 18px;
   width: 100%;
-  max-width: 260px;
+  max-width: 400px;
   max-height: 1880px;
   overflow-y: auto;
   display: block !important;   /* precisa sobrescrever o display:none !important */
-  z-index: 3800;
+  z-index: 380;
   transform-origin: top right;
   transform: translateY(-6px);
   transition: transform 160ms ease, opacity 160ms ease;
   opacity: 1;
   box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-  border-radius: 15px;
-}
-  #controlPanel.mobile-open .tool-grid {
-    grid-template-columns: 1fr !important;
-  }
-  #controlPanel.mobile-open .section-title {
-    font-size: 25px !important;
-    text-align: center !important;
-    justify-content: center !important;
-  }
-  #controlPanel.mobile-open .tool-btn span,
-  #controlPanel.mobile-open .action-btn span {
-    font-size: 25px !important;
-  }
-@media (max-width: 1024px) {
-  #controlPanel.mobile-open #selectTool {
-    grid-column: auto !important; /* remove o span especial */
-    justify-self: stretch !important; /* ocupa toda a largura */
-  }
-
-  #controlPanel.mobile-open .tool-btn {
-    width: 100% !important; /* garante largura igual para todos */
-  }
 }
 
 /* efeito: quando abrir, faz um pequeno slide */
@@ -787,15 +733,15 @@
 
 #mobileHelp {
   position: fixed;
-  top: 290px;
+  bottom: 90px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 68, 5, 0.9);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
-  padding: 20px 30px;
-  font-size: 30px;
+  padding: 50px 10px;
+  font-size: 40px;
   line-height: 1.4;
   color: #e7ffe9;
   text-align: center;
@@ -808,165 +754,6 @@
     display: none; /* só aparece no mobile */
   }
 }
-@media (max-width: 1024px) {
-  .clock-card {
-    display: none !important;
-  }
-}
-/* ===== AJUSTE FINAL PARA NOTEBOOKS (1025px a 1366px) ===== */
-@media (min-width: 1025px) and (max-width: 1366px) {
-
-  #smartDashboard {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 20px;
-    gap: 8px;
-    flex-wrap: nowrap; /* 🔹 garante tudo em uma linha */
-  }
-
-  /* Marca e relógio */
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 30px;  /* 🔹 levemente menor pra caber */
-    flex-shrink: 1;   /* texto pode reduzir se precisar */
-    white-space: nowrap; /* 🔹 evita quebra de linha */
-  }
-
-  .clock-card {
-    width: 110px;
-    min-width: 110px;
-    flex-shrink: 0; /* 🔹 relógio mantém largura fixa */
-    text-align: center;
-  }
-
-  /* Métricas mais compactas */
-  .metrics-grid {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    flex-shrink: 1;
-  }
-
-  .metric-card {
-    min-width: 85px;
-    padding: 6px 8px;
-  }
-
-  .metric-value {
-    font-size: 18px;
-  }
-
-  .metric-label {
-    font-size: 13px;
-  }
-
-  /* Login à direita (mantendo visual original) */
-  .dashboard-section {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    flex-shrink: 0;
-  }
-
-  .auth-section {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
-
-  #roleSelect,
-  #userPass {
-    font-size: 14px;
-    padding: 6px 10px;
-    min-width: 90px;
-  }
-
-  .auth-section button {
-    padding: 6px 10px !important;
-  }
-  /* Painel da direita (ferramentas) */
-  #controlPanel {
-    width: 260px;          /* 🔹 antes era 320px */
-    top: 150px;
-    right: 16px;
-    padding: 14px;
-  }
-
-  /* Painel da esquerda (vagas) */
-  #vagasPanel {
-    width: 240px;          /* 🔹 antes era 300px */
-    top: 150px;
-    left: 16px;
-    padding: 14px;
-  }
-
-  /* Botões e grids */
-  .tool-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-  }
-
-  .tool-btn,
-  .action-btn {
-    font-size: 11px;
-    padding: 6px 8px !important;
-    border-radius: 8px;
-  }
-
-  .tool-btn i,
-  .action-btn i {
-    font-size: 14px;
-  }
-
-  /* Títulos */
-  .section-title {
-    font-size: 12px;
-    margin-bottom: 8px;
-  }
-
-  /* Campos de busca e filtros */
-  .vaga-search {
-    font-size: 13px;
-    padding: 8px 10px;
-  }
-
-  .filter-chip {
-    font-size: 11px;
-    padding: 5px 10px;
-  }
-
-  /* Itens da lista de vagas */
-  .vaga-item {
-    padding: 8px;
-    font-size: 12px;
-  }
-
-  .vaga-numero {
-    font-size: 12px;
-  }
-
-  .vaga-status {
-    font-size: 10px;
-  }
-    #cameraLockBtn {
-      position: absolute;
-      top: 85px; right: 60px;
-      background: rgba(51, 65, 85, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #ffffff !important;
-      padding: 8px;
-      border-radius: 12px; cursor: pointer;
-      transition: all 0.3s ease;
-      z-index: 30;
-      backdrop-filter: blur(10px);
-    }
-
-}
 
 
   </style>
@@ -976,16 +763,10 @@
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
-
   <div class="brand">
-<div class="metric-card clock-card">
-  <div class="metric-value" id="horaAtual">--:--:--</div>
-  <div class="metric-label" id="dataAtual">--/--/----</div>
-</div>
     <i class="fa fa-car"></i>
     ESTACIONAMENTO SMAMUS
   </div>
-
   
   <div class="metrics-grid">
     <div class="metric-card">
@@ -1212,7 +993,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -1242,15 +1023,7 @@ const db = firebase.database();
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-let engine;
-try {
-  engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
-} catch (e) {
-  alert("Erro ao inicializar WebGL: " + e.message);
-}
-if (!engine) {
-  NotificationSystem.show("Seu navegador não suporta WebGL", "error");
-}
+const engine = new BABYLON.Engine(canvas, true);
 let scene, camera;
 let vagas = [];
 let vagaSelecionada = null;
@@ -1276,7 +1049,7 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
+const PASSWORDS = { operator: "op123", admin: "admin123" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
 const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
@@ -1341,27 +1114,17 @@ if (isMobile) {
 
   // ===== Controles de toque =====
   camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
-  camera.panningSensibility = 8;        // dois dedos = pan suave
-  camera.angularSensibilityX = 3000;     // rotação horizontal
-  camera.angularSensibilityY = 3000;     // rotação vertical
-  camera.pinchPrecision = 5;            // zoom de pinça mais suave
+  camera.panningSensibility = 80;        // dois dedos = pan suave
+  camera.angularSensibilityX = 2500;     // rotação horizontal
+  camera.angularSensibilityY = 2500;     // rotação vertical
+  camera.pinchPrecision = 20;            // zoom de pinça mais suave
   camera.wheelPrecision = 50;            // scroll também faz zoom
 
   // ===== Limites =====
   camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
-  camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
-  camera.upperRadiusLimit = 600; // limite de afastamento
-  camera.panningSensibility = 40; // pan mais suave
-camera.panningInertia = 0.8;    // movimento suave
-camera.panningDistanceLimit = 1000; // evita "sumir" o estacionamento
-
-// Evita o alvo (target) ir abaixo do chão
-scene.registerBeforeRender(() => {
-  if (camera.target.y < 0) {
-    camera.target.y = 0;
-  }
-});
+  camera.lowerRadiusLimit = 5;   // zoom até encostar no chão
+  camera.upperRadiusLimit = 300; // limite de afastamento
 
   // ===== Inércia e suavidade =====
   camera.inertia = 0.7;            // movimento fluido
@@ -1375,7 +1138,7 @@ scene.registerBeforeRender(() => {
     camera.keysDown.push(83); // S
     camera.keysLeft.push(65); // A
     camera.keysRight.push(68); // D
-    camera.speed = 3;
+    camera.speed = 1.5; // Movimento mais lento e controlado
     camera.angularSensibility = 2000; // Rotação mais suave
     camera.inputs.addMouseWheel();
     camera.wheelPrecision = 50;
@@ -1445,13 +1208,9 @@ skybox.material = skyboxMaterial;
 
   
   // Carregamento do modelo
-BABYLON.SceneLoader.Append(
-  `https://linckrafael.github.io/Smamus3Dv7/${PARKING_MODEL_FILE}?v=${Date.now()}`,
-  "",
-  scene,
-  () => NotificationSystem.show("Modelo do estacionamento carregado", "success")
-);
-
+  BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
+    NotificationSystem.show("Modelo do estacionamento carregado", "success");
+  });
   
   setupInteractions();
   setupKeyboardControls();
@@ -1594,9 +1353,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-    if (e.key === 'Y' || e.key === 'y') {
-     setIsometricView();
-    }
+   // if (e.key === 'I' || e.key === 'i') {
+   //   setIsometricView();
+   // }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -1835,7 +1594,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
@@ -2354,53 +2113,43 @@ async function carregarCarroNormalizado(vaga, modelFile) {
   return carroRoot;
 }
 
-function canWrite() {
-  return role === "admin" || role === "operator";
-}
-
-function atualizarFirebase(vaga, id) {
-  if (!canWrite()) {
-    NotificationSystem.show("Sem permissão para alterar dados", "error");
-    return;
-  }
-  db.ref('vagas/' + id).update({
-    x: vaga.mesh.position.x,
-    y: vaga.mesh.position.y,
-    z: vaga.mesh.position.z,
-    rotY: vaga.mesh.rotation.y,
-    ocupada: vaga.ocupada,
-    carModel: vaga.carModel || null,
-    numero: vaga.numero
-  });
-}
-
-
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
   scene.onPointerObservable.add((pointerInfo) => {
+    const evt = pointerInfo.event;
+    
     switch (pointerInfo.type) {
-      case BABYLON.PointerEventTypes.POINTERPICK:
-        const pickResult = pointerInfo.pickInfo;
-        if (!pickResult.hit) return;
-
-        const pickedMesh = pickResult.pickedMesh;
-        const vaga = vagas.find(v => v.mesh === pickedMesh);
-
-        if (vaga) {
-          // Clicou em uma vaga → seleciona normalmente
-          selectVaga(vaga);
-        } else {
-          // Clicou fora de qualquer vaga → deseleciona
-          if (vagaSelecionada) {
-            // Restaura cor da vaga anterior
-            const color = vagaSelecionada.ocupada
-              ? new BABYLON.Color3(0.8, 0.2, 0.2)
-              : new BABYLON.Color3(0, 0.8, 0.3);
-            vagaSelecionada.mesh.material.emissiveColor = color.scale(0.3);
-
-            vagaSelecionada = null;
-            updateVagasList();
-            NotificationSystem.show("Nenhuma vaga selecionada", "info", 1500);
+      case BABYLON.PointerEventTypes.POINTERDOWN:
+        if (evt.button === 0) {
+          const pick = scene.pick(scene.pointerX, scene.pointerY);
+          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
+          
+          if (pick.hit) {
+            if (currentTool === 'create' && role !== 'viewer') {
+              pendingPosition = pick.pickedPoint.clone();
+              pendingPosition.y += 0.01;
+              
+              if (document.getElementById('creationWizard').style.display === 'none') {
+                showCreationWizard();
+              }
+              
+              NotificationSystem.show("Posição definida. Configure no assistente.", "info");
+              return;
+            }
+            
+            const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
+            if (vaga) {
+              selectVaga(vaga);
+              
+              if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
+                isDragging = true;
+                canvas.style.cursor = 'move';
+                if (cameraWasAttached && !isCameraLocked) {
+                  camera.detachControl(canvas);
+                  cameraWasAttached = false;
+                }
+              }
+            }
           }
         }
         break;
@@ -2500,8 +2249,7 @@ function stopMoveCamera() {
 function login() {
   const selected = document.getElementById("roleSelect").value;
   const pass = document.getElementById("userPass").value;
-
-
+  
   if (selected === "viewer") {
     role = "viewer";
     NotificationSystem.show("Modo Visualizador ativado", "info");
@@ -2584,50 +2332,46 @@ function updateVagasList() {
     return numA - numB;
   });
   
- container.innerHTML = '';
-
-filteredVagas.forEach(vaga => {
-  const isEditing = isEditingMode && vaga === vagaSelecionada;
-  const item = document.createElement('div');
-  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+  container.innerHTML = '';
   
-  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-  
-  item.innerHTML = `
-    <div class="vaga-header">
-      <div class="vaga-numero">${vaga.numero}</div>
-      <div class="vaga-status ${statusClass}">
-        ${statusText}
+  filteredVagas.forEach(vaga => {
+    const isEditing = isEditingMode && vaga === vagaSelecionada;
+    const item = document.createElement('div');
+    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+    
+    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+    
+    item.innerHTML = `
+      <div class="vaga-header">
+        <div class="vaga-numero">${vaga.numero}</div>
+        <div class="vaga-status ${statusClass}">
+          ${statusText}
+        </div>
       </div>
-    </div>
-
-    <div class="vaga-actions">
-      <!-- 🔹 Botão Ver: sempre aparece -->
-      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-        <i class="fas fa-eye"></i> Ver
-      </button>
-
-      <!-- 🔹 Outros botões: só se não for viewer -->
       ${role !== 'viewer' && !isEditing ? `
-        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
-        </button>
-        ${role === 'admin' ? `
-          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-            <i class="fas fa-edit"></i> Editar
+        <div class="vaga-actions">
+<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+  <i class="fas fa-eye"></i> Ver
+</button>
+
+          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
           </button>
-        ` : ''}
+          ${role !== 'viewer' && role !== 'operator' ? `
+            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+              <i class="fas fa-edit"></i> Editar
+            </button>
+          ` : ''}
+        </div>
       ` : ''}
-    </div>
-  `;
-
-  item.addEventListener('click', () => selectVaga(vaga));
-  container.appendChild(item);
-});
+    `;
+    
+    item.addEventListener('click', () => selectVaga(vaga));
+    container.appendChild(item);
+  });
 }
-
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
@@ -2924,37 +2668,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // console.log("hamburger ready", hamburgerBtn, controlPanel);
 });
 
-// ===== RELÓGIO =====
-function atualizarRelogio() {
-  const agora = new Date();
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
-  const segundos = String(agora.getSeconds()).padStart(2, '0');
-  const dia = String(agora.getDate()).padStart(2, '0');
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  const ano = agora.getFullYear();
 
-  document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
-  document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
-}
-
-// Atualiza o relógio a cada segundo
-setInterval(atualizarRelogio, 1000);
-atualizarRelogio();
-
-    const userPassInput = document.getElementById("userPass");
-
-    userPassInput.addEventListener("keydown", function(event) {
-      if (event.key === "Enter") {
-        login();
-      }
-    });
-
-window.addEventListener("beforeunload", () => {
-  if (engine) {
-    engine.dispose();
-  }
-});
 
 </script>
 </body>
