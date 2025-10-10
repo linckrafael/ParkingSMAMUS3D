@@ -1582,9 +1582,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-   // if (e.key === 'I' || e.key === 'i') {
-   //   setIsometricView();
-   // }
+    if (e.key === 'Y' || e.key === 'y') {
+     setIsometricView();
+    }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -2341,6 +2341,27 @@ async function carregarCarroNormalizado(vaga, modelFile) {
   
   return carroRoot;
 }
+
+function canWrite() {
+  return role === "admin" || role === "operator";
+}
+
+function atualizarFirebase(vaga, id) {
+  if (!canWrite()) {
+    NotificationSystem.show("Sem permissão para alterar dados", "error");
+    return;
+  }
+  db.ref('vagas/' + id).update({
+    x: vaga.mesh.position.x,
+    y: vaga.mesh.position.y,
+    z: vaga.mesh.position.z,
+    rotY: vaga.mesh.rotation.y,
+    ocupada: vaga.ocupada,
+    carModel: vaga.carModel || null,
+    numero: vaga.numero
+  });
+}
+
 
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
