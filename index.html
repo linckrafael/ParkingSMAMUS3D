@@ -2,6 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
   <title>Smamus 3D - Sistema Inteligente de Estacionamento</title>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
@@ -1242,7 +1246,15 @@ const db = firebase.database();
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-const engine = new BABYLON.Engine(canvas, true);
+let engine;
+try {
+  engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+} catch (e) {
+  alert("Erro ao inicializar WebGL: " + e.message);
+}
+if (!engine) {
+  NotificationSystem.show("Seu navegador não suporta WebGL", "error");
+}
 let scene, camera;
 let vagas = [];
 let vagaSelecionada = null;
@@ -1271,7 +1283,7 @@ let isMobile = false;
 const PASSWORDS = { operator: "op123", admin: "smamusAdmin" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
-const CAR_MODELS = ["car4.glb","car6.glb"];
+const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
 const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
@@ -1437,9 +1449,13 @@ skybox.material = skyboxMaterial;
 
   
   // Carregamento do modelo
-  BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
-    NotificationSystem.show("Modelo do estacionamento carregado", "success");
-  });
+BABYLON.SceneLoader.Append(
+  `https://linckrafael.github.io/Smamus3Dv7/${PARKING_MODEL_FILE}?v=${Date.now()}`,
+  "",
+  scene,
+  () => NotificationSystem.show("Modelo do estacionamento carregado", "success")
+);
+
   
   setupInteractions();
   setupKeyboardControls();
@@ -2937,6 +2953,13 @@ atualizarRelogio();
         login();
       }
     });
+
+window.addEventListener("beforeunload", () => {
+  if (engine) {
+    engine.dispose();
+  }
+});
+
 </script>
 </body>
 </html>
