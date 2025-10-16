@@ -9,6 +9,7 @@
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -35,7 +36,7 @@
       border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       position: absolute;
-      color: #e2e8f0;
+      color: #f0e2e3;
       z-index: 20;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -47,10 +48,10 @@
 
     /* ===== HEADER DASHBOARD ===== */
     #smartDashboard {
-      top: 20px; left: 20px; right: 20px;
+      top: 0px; left: 0px; right: 0px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0px 24px;
-      gap:10px;
+      padding: 10px 24px;
+      gap:5px;
     }
 
     .dashboard-section {
@@ -58,9 +59,39 @@
       
     }
 
+#horaAtual {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+#dataAtual {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.brand .clock-card #dataAtual {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
+  color: #a7ffb0 !important;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.clock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 130px; /* 🔹 largura fixa do bloco do relógio */
+  min-width: 130px;
+  text-align: center;
+}
+
+
     .brand {
       display: flex; align-items: center; gap: 30px;
-      font-size: 30px;
+      font-size: 40px;
       font-weight: 700;
       white-space: wrap;
       background: linear-gradient(135deg, #039403, #00FF55, #039403);
@@ -68,9 +99,10 @@
       -webkit-text-fill-color: transparent;
     }
 
+
     .metrics-grid {
       display: flex;
-      gap: 10px;
+      gap: 5px;
       align-items: center;
       justify-content: space-between;
     }
@@ -84,14 +116,14 @@
     }
 
     .metric-value {
-      font-size: 30px; font-weight: 700;
+      font-size: 20px; font-weight: 700;
       background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 30px; opacity: 0.8; margin-top: 4px;
+      font-size: 20px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
 
     }
@@ -178,10 +210,10 @@
     /* ===== BOTÃO DE BLOQUEIO DE CÂMERA ===== */
     #cameraLockBtn {
       position: absolute;
-      top: 130px; right: 360px;
-      background: rgba(51, 65, 85, 0.8);
+      top: 105px; right: 60px;
+      background: rgba(51, 65, 85, 0.8); 
       border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #e2e8f0; padding: 12px;
+      color: #ffffff !important; padding: 10px;
       border-radius: 12px; cursor: pointer;
       transition: all 0.3s ease;
       z-index: 30;
@@ -462,7 +494,7 @@
 
     /* ===== NOTIFICATION SYSTEM ===== */
     .notification {
-      position: fixed; top: 120px; right: 20px;
+      position: fixed; top: 103px; right: 20px;
       background: rgba(51, 165, 85, 0.3);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148, 163, 184, 0.2);
@@ -520,15 +552,16 @@
       min-width: auto;
     }
 
+
 .metric-value {
-      font-size: 60px; font-weight: 700;
+      font-size: 35px; font-weight: 700;
       background: linear-gradient(135deg, #039403, #00FF55);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .metric-label {
-      font-size: 35px; opacity: 0.8; margin-top: 4px;
+      font-size: 25px; opacity: 0.8; margin-top: 4px;
       text-transform: uppercase; letter-spacing: 0.5px;
 
     }
@@ -536,7 +569,7 @@
   }
 
   .brand {
-    font-size: 48px; /* mais destaque */
+    font-size: 58px; /* mais destaque */
     font-weight: bold;
     justify-content: center;
   }
@@ -591,7 +624,6 @@
   }
 
 }
-
 
 
     /* ===== UTILITIES ===== */
@@ -681,14 +713,14 @@
   background: rgba(51,165,85,0.6);
   border: 1px solid rgba(148,163,184,0.15);
   color: #e7ffe9;
-  font-size: 20px;
-  padding: 28px 30px;
+  font-size: 25px;
+  padding: 20px 25px;
   border-radius: 10px;
   cursor: pointer;
   position: absolute;
   right: 16px;
-  top: 18px;
-  z-index: 4000;
+  top: 180px;
+  z-index: 1000;
 }
 
 /* mobile: mostra o botão hamburguer e esconde painel lateral padrão */
@@ -700,19 +732,42 @@
 /* Quando o painel recebe a classe .mobile-open ele abre como dropdown */
 #controlPanel.mobile-open {
   position: absolute;
-  top: 330px;           /* fica abaixo do cabeçalho */
-  right: 18px;
+  top: 275px;           /* fica abaixo do cabeçalho */
+  right: 0px;
   width: 100%;
-  max-width: 400px;
+  max-width: 260px;
   max-height: 1880px;
   overflow-y: auto;
   display: block !important;   /* precisa sobrescrever o display:none !important */
-  z-index: 380;
+  z-index: 3800;
   transform-origin: top right;
   transform: translateY(-6px);
   transition: transform 160ms ease, opacity 160ms ease;
   opacity: 1;
   box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  border-radius: 15px;
+}
+  #controlPanel.mobile-open .tool-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #controlPanel.mobile-open .section-title {
+    font-size: 25px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  #controlPanel.mobile-open .tool-btn span,
+  #controlPanel.mobile-open .action-btn span {
+    font-size: 25px !important;
+  }
+@media (max-width: 1024px) {
+  #controlPanel.mobile-open #selectTool {
+    grid-column: auto !important; /* remove o span especial */
+    justify-self: stretch !important; /* ocupa toda a largura */
+  }
+
+  #controlPanel.mobile-open .tool-btn {
+    width: 100% !important; /* garante largura igual para todos */
+  }
 }
 
 /* efeito: quando abrir, faz um pequeno slide */
@@ -733,15 +788,15 @@
 
 #mobileHelp {
   position: fixed;
-  bottom: 90px;
+  top: 290px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 68, 5, 0.9);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
-  padding: 50px 10px;
-  font-size: 40px;
+  padding: 20px 30px;
+  font-size: 30px;
   line-height: 1.4;
   color: #e7ffe9;
   text-align: center;
@@ -754,6 +809,165 @@
     display: none; /* só aparece no mobile */
   }
 }
+@media (max-width: 1024px) {
+  .clock-card {
+    display: none !important;
+  }
+}
+/* ===== AJUSTE FINAL PARA NOTEBOOKS (1025px a 1366px) ===== */
+@media (min-width: 1025px) and (max-width: 1366px) {
+
+  #smartDashboard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    gap: 8px;
+    flex-wrap: nowrap; /* 🔹 garante tudo em uma linha */
+  }
+
+  /* Marca e relógio */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 30px;  /* 🔹 levemente menor pra caber */
+    flex-shrink: 1;   /* texto pode reduzir se precisar */
+    white-space: nowrap; /* 🔹 evita quebra de linha */
+  }
+
+  .clock-card {
+    width: 110px;
+    min-width: 110px;
+    flex-shrink: 0; /* 🔹 relógio mantém largura fixa */
+    text-align: center;
+  }
+
+  /* Métricas mais compactas */
+  .metrics-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 1;
+  }
+
+  .metric-card {
+    min-width: 85px;
+    padding: 6px 8px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+  }
+
+  .metric-label {
+    font-size: 13px;
+  }
+
+  /* Login à direita (mantendo visual original) */
+  .dashboard-section {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .auth-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  #roleSelect,
+  #userPass {
+    font-size: 14px;
+    padding: 6px 10px;
+    min-width: 90px;
+  }
+
+  .auth-section button {
+    padding: 6px 10px !important;
+  }
+  /* Painel da direita (ferramentas) */
+  #controlPanel {
+    width: 260px;          /* 🔹 antes era 320px */
+    top: 150px;
+    right: 16px;
+    padding: 14px;
+  }
+
+  /* Painel da esquerda (vagas) */
+  #vagasPanel {
+    width: 240px;          /* 🔹 antes era 300px */
+    top: 150px;
+    left: 16px;
+    padding: 14px;
+  }
+
+  /* Botões e grids */
+  .tool-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .tool-btn,
+  .action-btn {
+    font-size: 11px;
+    padding: 6px 8px !important;
+    border-radius: 8px;
+  }
+
+  .tool-btn i,
+  .action-btn i {
+    font-size: 14px;
+  }
+
+  /* Títulos */
+  .section-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Campos de busca e filtros */
+  .vaga-search {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .filter-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* Itens da lista de vagas */
+  .vaga-item {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .vaga-numero {
+    font-size: 12px;
+  }
+
+  .vaga-status {
+    font-size: 10px;
+  }
+    #cameraLockBtn {
+      position: absolute;
+      top: 85px; right: 60px;
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #ffffff !important;
+      padding: 8px;
+      border-radius: 12px; cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+    }
+
+}
 
 
   </style>
@@ -763,10 +977,16 @@
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
+
   <div class="brand">
+<div class="metric-card clock-card">
+  <div class="metric-value" id="horaAtual">--:--:--</div>
+  <div class="metric-label" id="dataAtual">--/--/----</div>
+</div>
     <i class="fa fa-car"></i>
     ESTACIONAMENTO SMAMUS
   </div>
+
   
   <div class="metrics-grid">
     <div class="metric-card">
@@ -795,6 +1015,9 @@
       <button class="action-btn" onclick="login()" style="min-height: auto; padding: 8px 16px;">
         <i class="fas fa-sign-in-alt"></i>
       </button>
+       <button id="logoutBtn" class="action-btn danger-btn hidden" onclick="logout()" style="min-height: auto; padding: 8px 16px;">
+    <i class="fas fa-sign-out-alt"></i>
+       </button>
     </div>
   </div>
 </div>
@@ -993,7 +1216,7 @@
   <!-- Navigation Help -->
   <div id="navigationHelp">
     <i class="fas fa-info-circle"></i>
-    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar
+    <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | T = Topo | Y = Isométrica | R = Reset
   </div>
 
 <!-- Ajuda de Navegação no Mobile -->
@@ -1049,7 +1272,6 @@ let savedCameraState = null;
 let isMobile = false;
 
 // ===== CONSTANTES =====
-const PASSWORDS = { operator: "op123", admin: "admin123" };
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
 const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
@@ -1114,17 +1336,27 @@ if (isMobile) {
 
   // ===== Controles de toque =====
   camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
-  camera.panningSensibility = 80;        // dois dedos = pan suave
-  camera.angularSensibilityX = 2500;     // rotação horizontal
-  camera.angularSensibilityY = 2500;     // rotação vertical
-  camera.pinchPrecision = 20;            // zoom de pinça mais suave
+  camera.panningSensibility = 8;        // dois dedos = pan suave
+  camera.angularSensibilityX = 3000;     // rotação horizontal
+  camera.angularSensibilityY = 3000;     // rotação vertical
+  camera.pinchPrecision = 5;            // zoom de pinça mais suave
   camera.wheelPrecision = 50;            // scroll também faz zoom
 
   // ===== Limites =====
   camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
   camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
-  camera.lowerRadiusLimit = 5;   // zoom até encostar no chão
-  camera.upperRadiusLimit = 300; // limite de afastamento
+  camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
+  camera.upperRadiusLimit = 600; // limite de afastamento
+  camera.panningSensibility = 40; // pan mais suave
+camera.panningInertia = 0.8;    // movimento suave
+camera.panningDistanceLimit = 1000; // evita "sumir" o estacionamento
+
+// Evita o alvo (target) ir abaixo do chão
+scene.registerBeforeRender(() => {
+  if (camera.target.y < 0) {
+    camera.target.y = 0;
+  }
+});
 
   // ===== Inércia e suavidade =====
   camera.inertia = 0.7;            // movimento fluido
@@ -1138,7 +1370,7 @@ if (isMobile) {
     camera.keysDown.push(83); // S
     camera.keysLeft.push(65); // A
     camera.keysRight.push(68); // D
-    camera.speed = 1.5; // Movimento mais lento e controlado
+    camera.speed = 3;
     camera.angularSensibility = 2000; // Rotação mais suave
     camera.inputs.addMouseWheel();
     camera.wheelPrecision = 50;
@@ -1353,9 +1585,9 @@ function setupKeyboardControls() {
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
-   // if (e.key === 'I' || e.key === 'i') {
-   //   setIsometricView();
-   // }
+    if (e.key === 'Y' || e.key === 'y') {
+     setIsometricView();
+    }
     if (e.key === 'R' || e.key === 'r') {
       resetCamera();
     }
@@ -1594,7 +1826,7 @@ function updateNavigationHelp() {
     help.classList.add('ctrl-active');
     help.classList.remove('transform-mode', 'camera-locked');
   } else {
-    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | I = Isométrica | R = Reset';
+    help.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Navegação:</strong> WASD = Mover | Mouse = Rotacionar | CTRL + Vaga = Editar | T = Topo | Y = Isométrica | R = Reset';
     help.classList.remove('transform-mode', 'ctrl-active', 'camera-locked');
   }
 }
@@ -2113,43 +2345,53 @@ async function carregarCarroNormalizado(vaga, modelFile) {
   return carroRoot;
 }
 
+function canWrite() {
+  return role === "admin" || role === "operator";
+}
+
+function atualizarFirebase(vaga, id) {
+  if (!canWrite()) {
+    NotificationSystem.show("Sem permissão para alterar dados", "error");
+    return;
+  }
+  db.ref('vagas/' + id).update({
+    x: vaga.mesh.position.x,
+    y: vaga.mesh.position.y,
+    z: vaga.mesh.position.z,
+    rotY: vaga.mesh.rotation.y,
+    ocupada: vaga.ocupada,
+    carModel: vaga.carModel || null,
+    numero: vaga.numero
+  });
+}
+
+
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
   scene.onPointerObservable.add((pointerInfo) => {
-    const evt = pointerInfo.event;
-    
     switch (pointerInfo.type) {
-      case BABYLON.PointerEventTypes.POINTERDOWN:
-        if (evt.button === 0) {
-          const pick = scene.pick(scene.pointerX, scene.pointerY);
-          lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
-          
-          if (pick.hit) {
-            if (currentTool === 'create' && role !== 'viewer') {
-              pendingPosition = pick.pickedPoint.clone();
-              pendingPosition.y += 0.01;
-              
-              if (document.getElementById('creationWizard').style.display === 'none') {
-                showCreationWizard();
-              }
-              
-              NotificationSystem.show("Posição definida. Configure no assistente.", "info");
-              return;
-            }
-            
-            const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
-            if (vaga) {
-              selectVaga(vaga);
-              
-              if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
-                isDragging = true;
-                canvas.style.cursor = 'move';
-                if (cameraWasAttached && !isCameraLocked) {
-                  camera.detachControl(canvas);
-                  cameraWasAttached = false;
-                }
-              }
-            }
+      case BABYLON.PointerEventTypes.POINTERPICK:
+        const pickResult = pointerInfo.pickInfo;
+        if (!pickResult.hit) return;
+
+        const pickedMesh = pickResult.pickedMesh;
+        const vaga = vagas.find(v => v.mesh === pickedMesh);
+
+        if (vaga) {
+          // Clicou em uma vaga → seleciona normalmente
+          selectVaga(vaga);
+        } else {
+          // Clicou fora de qualquer vaga → deseleciona
+          if (vagaSelecionada) {
+            // Restaura cor da vaga anterior
+            const color = vagaSelecionada.ocupada
+              ? new BABYLON.Color3(0.8, 0.2, 0.2)
+              : new BABYLON.Color3(0, 0.8, 0.3);
+            vagaSelecionada.mesh.material.emissiveColor = color.scale(0.3);
+
+            vagaSelecionada = null;
+            updateVagasList();
+            NotificationSystem.show("Nenhuma vaga selecionada", "info", 1500);
           }
         }
         break;
@@ -2243,27 +2485,177 @@ function stopMoveCamera() {
   }
 }
 
-
-
-// ===== SISTEMA DE AUTENTICAÇÃO =====
+// NOVA FUNÇÃO de login usando Firebase Auth (mantém a escolha por role no select)
 function login() {
-  const selected = document.getElementById("roleSelect").value;
-  const pass = document.getElementById("userPass").value;
-  
-  if (selected === "viewer") {
-    role = "viewer";
-    NotificationSystem.show("Modo Visualizador ativado", "info");
-  } else if (pass === PASSWORDS[selected]) {
-    role = selected;
-    NotificationSystem.show(`Modo ${role === "admin" ? "Administrador" : "Operador"} ativado`, "success");
-  } else {
-    NotificationSystem.show("Senha incorreta", "error");
+  const selectedRole = document.getElementById("roleSelect").value || "viewer";
+  const userPassInput = document.getElementById("userPass");
+  const enteredPassword = userPassInput.value; // <-- 1. CAPTURA A SENHA DIGITADA
+
+  const creds = ROLE_CREDENTIALS[selectedRole];
+
+  if (!creds || !creds.email) {
+    NotificationSystem.show("Credenciais de role não configuradas ou-mail ausente.", "error");
     return;
   }
   
-  updateUI();
-  document.getElementById("userPass").value = "";
+  // 2. VALIDAÇÃO ADICIONAL: Se for operador ou admin, a senha é obrigatória
+  if (selectedRole !== "viewer" && (!creds.password || enteredPassword !== creds.password)) {
+      NotificationSystem.show("Senha incorreta ou ausente. Tente novamente.", "error");
+      userPassInput.value = ""; // Limpa a senha
+      return;
+  }
+
+  // Se o login for de 'viewer', ele não tem senha no objeto ROLE_CREDENTIALS e o input é ignorado (como é um viewer, isso é aceitável no seu contexto)
+  
+  // 3. FAZ O LOGIN NO FIREBASE APENAS SE FOR OPERADOR OU ADMIN
+  if (selectedRole === "viewer") {
+      // Para o viewer, apenas atualiza a UI, não precisa do Firebase Auth
+      role = selectedRole;
+      NotificationSystem.show(`Logado como ${role}`, "success");
+      updateUIAfterLogin && updateUIAfterLogin(role);
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) logoutBtn.classList.remove("hidden");
+      return;
+  }
+
+  // Faz signIn com email/senha (USANDO A SENHA CORRETA DO OBJETO)
+  firebase.auth().signInWithEmailAndPassword(creds.email, creds.password)
+    .then(async (userCredential) => {
+      // ... (O restante da sua lógica de validação de role no DB permanece) ...
+      const user = userCredential.user;
+      const uid = user.uid;
+
+      // Puxa o papel real do DB (roles/UID) e valida
+      const snap = await db.ref("roles/" + uid).once("value");
+      const actualRole = snap.val();
+
+      if (!actualRole) {
+        NotificationSystem.show("Conta sem papel definido no banco (roles). Contate o admin.", "error");
+        await firebase.auth().signOut();
+        return;
+      }
+
+      if (actualRole !== selectedRole) {
+        NotificationSystem.show(`Papel no banco (${actualRole}) difere do papel selecionado (${selectedRole}). Login cancelado.`, "error");
+        await firebase.auth().signOut();
+        return;
+      }
+
+      // Sucesso: atualiza UI e variável role
+      role = actualRole;
+      document.getElementById("roleBadge").textContent =
+        role === "admin" ? "Administrador" : role === "operator" ? "Operador" : "Usuário";
+
+      NotificationSystem.show(`Logado como ${role}`, "success");
+      updateUIAfterLogin && updateUIAfterLogin(role); // chama se existir
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) logoutBtn.classList.remove("hidden");
+
+    })
+    .catch((error) => {
+      NotificationSystem.show("Falha no login do Firebase: " + error.message, "error");
+      userPassInput.value = "";
+    });
 }
+// ===== SISTEMA DE AUTENTICAÇÃO =====
+// Credenciais pré-criadas (usa apenas para UX — ver nota de segurança abaixo)
+const ROLE_CREDENTIALS = {
+  viewer:  { email: "viewer@smamus3d.com" },
+  operator:{ email: "operador@smamus3d.com", password: "op1234" },
+  admin:   { email: "admin@smamus3d.com", password: "smamusAdmin" }
+};
+
+function updateUIAfterLogin(role) {
+  const controlPanel = document.getElementById("controlPanel");
+  const vagaActions = document.getElementById("vagaActions");
+  const batchActions = document.getElementById("batchActions");
+  const createTool = document.getElementById("createTool");
+  const editTool = document.getElementById("editTool");
+  const deleteButtons = document.querySelectorAll(".danger-btn");
+  const roleBadge = document.getElementById("roleBadge");
+
+  // 👉 Mostra o botão de logout para qualquer usuário logado
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.classList.remove("hidden");
+
+  // 👉 Desativa o seletor de role enquanto logado
+  const roleSelect = document.getElementById("roleSelect");
+  if (roleSelect) roleSelect.disabled = true;
+
+  // Atualiza o badge visual
+  if (roleBadge) {
+    roleBadge.textContent =
+      role === "admin"
+        ? "Administrador"
+        : role === "operator"
+        ? "Operador"
+        : "Usuário";
+    roleBadge.className =
+      "role-badge " +
+      (role === "admin"
+        ? "role-admin"
+        : role === "operator"
+        ? "role-operator"
+        : "role-viewer");
+  }
+
+  // ===== VIEWER =====
+  if (role === "viewer") {
+    if (controlPanel) controlPanel.style.display = "block";
+    if (vagaActions) vagaActions.style.display = "none";
+    if (batchActions) batchActions.style.display = "none";
+    if (createTool) createTool.style.display = "none";
+    if (editTool) editTool.style.display = "none";
+    deleteButtons.forEach(btn => (btn.style.display = "none"));
+  }
+
+  // ===== OPERATOR =====
+  else if (role === "operator") {
+    if (controlPanel) controlPanel.style.display = "block";
+    if (vagaActions) vagaActions.style.display = "block";
+    if (batchActions) batchActions.style.display = "block";
+    if (createTool) createTool.style.display = "none";
+    if (editTool) editTool.style.display = "none";
+    deleteButtons.forEach(btn => (btn.style.display = "block"));
+  }
+
+  // ===== ADMIN =====
+  else if (role === "admin") {
+    if (controlPanel) controlPanel.style.display = "block";
+    if (vagaActions) vagaActions.style.display = "block";
+    if (batchActions) batchActions.style.display = "block";
+    if (createTool) createTool.style.display = "block";
+    if (editTool) editTool.style.display = "block";
+    deleteButtons.forEach(btn => (btn.style.display = "block"));
+  }
+
+  console.log(`Interface ajustada para role: ${role}`);
+}
+
+// Função para deslogar
+function logout() {
+  firebase.auth().signOut().then(() => {
+    role = "viewer";
+    document.getElementById("roleBadge").textContent = "Usuário";
+    document.getElementById("roleBadge").className = "role-badge role-viewer";
+    NotificationSystem.show("Logout realizado com sucesso", "info");
+
+    // Oculta o botão de logout
+    document.getElementById("logoutBtn").classList.add("hidden");
+    document.getElementById("userPass").value = "";
+
+    // Atualiza a UI para modo usuário (mantém menu)
+    updateUIAfterLogin("viewer");
+
+    // Reabilita seletor de role após restaurar a interface
+    const roleSelect = document.getElementById("roleSelect");
+    if (roleSelect) roleSelect.disabled = false;
+  }).catch((error) => {
+    NotificationSystem.show("Erro ao fazer logout: " + error.message, "error");
+  });
+}
+
+
 
 // ===== INTERFACE DE USUÁRIO =====
 function updateUI() {
@@ -2332,46 +2724,50 @@ function updateVagasList() {
     return numA - numB;
   });
   
-  container.innerHTML = '';
-  
-  filteredVagas.forEach(vaga => {
-    const isEditing = isEditingMode && vaga === vagaSelecionada;
-    const item = document.createElement('div');
-    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
-    
-    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-    
-    item.innerHTML = `
-      <div class="vaga-header">
-        <div class="vaga-numero">${vaga.numero}</div>
-        <div class="vaga-status ${statusClass}">
-          ${statusText}
-        </div>
-      </div>
-      ${role !== 'viewer' && !isEditing ? `
-        <div class="vaga-actions">
-<button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-  <i class="fas fa-eye"></i> Ver
-</button>
+ container.innerHTML = '';
 
-          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+filteredVagas.forEach(vaga => {
+  const isEditing = isEditingMode && vaga === vagaSelecionada;
+  const item = document.createElement('div');
+  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+  
+  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+  
+  item.innerHTML = `
+    <div class="vaga-header">
+      <div class="vaga-numero">${vaga.numero}</div>
+      <div class="vaga-status ${statusClass}">
+        ${statusText}
+      </div>
+    </div>
+
+    <div class="vaga-actions">
+      <!-- 🔹 Botão Ver: sempre aparece -->
+      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+        <i class="fas fa-eye"></i> Ver
+      </button>
+
+      <!-- 🔹 Outros botões: só se não for viewer -->
+      ${role !== 'viewer' && !isEditing ? `
+        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+        </button>
+        ${role === 'admin' ? `
+          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+            <i class="fas fa-edit"></i> Editar
           </button>
-          ${role !== 'viewer' && role !== 'operator' ? `
-            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-          ` : ''}
-        </div>
+        ` : ''}
       ` : ''}
-    `;
-    
-    item.addEventListener('click', () => selectVaga(vaga));
-    container.appendChild(item);
-  });
+    </div>
+  `;
+
+  item.addEventListener('click', () => selectVaga(vaga));
+  container.appendChild(item);
+});
 }
+
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
@@ -2668,6 +3064,31 @@ document.addEventListener("DOMContentLoaded", function() {
   // console.log("hamburger ready", hamburgerBtn, controlPanel);
 });
 
+// ===== RELÓGIO =====
+function atualizarRelogio() {
+  const agora = new Date();
+  const horas = String(agora.getHours()).padStart(2, '0');
+  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const segundos = String(agora.getSeconds()).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const ano = agora.getFullYear();
+
+  document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
+  document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
+}
+
+// Atualiza o relógio a cada segundo
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
+
+    const userPassInput = document.getElementById("userPass");
+
+    userPassInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        login();
+      }
+    });
 
 
 </script>
