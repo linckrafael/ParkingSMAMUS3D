@@ -1244,6 +1244,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// === AUTENTICAÇÃO ANÔNIMA AUTOMÁTICA PARA VIEWER ===
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) {
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        console.log("Autenticado anonimamente como viewer.");
+      })
+      .catch(err => {
+        console.error("Falha na autenticação anônima:", err);
+      });
+  } else {
+    console.log("Usuário autenticado:", user.uid);
+  }
+});
+
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
