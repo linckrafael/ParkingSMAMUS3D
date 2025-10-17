@@ -278,7 +278,7 @@
     }
 
     .vaga-item {
-      background: rgba(51, 13:25 17/09/202565, 85, 0.4);
+      background: rgba(51, 85, 0.4);
       border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 10px; padding: 12px; margin-bottom: 8px;
       cursor: pointer; transition: all 0.2s ease;
@@ -515,7 +515,61 @@
     .notification.warning { border-left: 4px solid #f59e0b; }
     .notification.info { border-left: 4px solid #3ef910; }
 
+/* === Painel de Clima === */
+.clima-box {
+  position: absolute;
+  top: 90px; /* abaixo do cabeçalho */
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 12px;
+  z-index: 2000;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3); 
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+.clima-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.clima-box.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clima-texto {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
     /* ===== MOBILE OPTIMIZATIONS ===== */
+@media (max-width: 1024px) {
+  .clima-box {
+  position: absolute;
+  top: 150px; /* abaixo do cabeçalho */
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 122px;
+  z-index: 2000;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3); 
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+ }
+}
+
 @media (max-width: 1024px) {
 
   /* Esconde a parte de autenticação */
@@ -831,15 +885,15 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    font-size: 30px;  /* 🔹 levemente menor pra caber */
-    flex-shrink: 1;   /* texto pode reduzir se precisar */
-    white-space: nowrap; /* 🔹 evita quebra de linha */
+    font-size: 30px;  
+    flex-shrink: 1;   
+    white-space: nowrap; 
   }
 
   .clock-card {
     width: 110px;
     min-width: 110px;
-    flex-shrink: 0; /* 🔹 relógio mantém largura fixa */
+    flex-shrink: 0; 
     text-align: center;
   }
 
@@ -892,7 +946,7 @@
   }
   /* Painel da direita (ferramentas) */
   #controlPanel {
-    width: 260px;          /* 🔹 antes era 320px */
+    width: 260px;          
     top: 150px;
     right: 16px;
     padding: 14px;
@@ -900,7 +954,7 @@
 
   /* Painel da esquerda (vagas) */
   #vagasPanel {
-    width: 240px;          /* 🔹 antes era 300px */
+    width: 240px;          
     top: 150px;
     left: 16px;
     padding: 14px;
@@ -966,9 +1020,7 @@
       z-index: 30;
       backdrop-filter: blur(10px);
     }
-
 }
-
 
   </style>
 </head>
@@ -1031,6 +1083,12 @@
       </div>
     </div>
   </div>
+  <!-- Painel Clima -->
+<div id="climaBox" class="clima-box hidden">
+  <img id="climaIcon" class="clima-icon" src="" alt="Clima" />
+  <span id="climaTexto" class="clima-texto">Carregando...</span>
+</div>
+
 
   <!-- Control Panel -->
   <div id="controlPanel" class="glass-panel">
@@ -1243,6 +1301,30 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+async function obterClimaAtual() {
+  const cidade = "Porto Alegre";
+  const apiKey = "57ca7352de0bf52eb9f0f5943b1cbc4a"; 
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&units=metric&lang=pt_br&appid=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.weather || !data.weather[0]) {
+      console.warn("Não foi possível obter o clima atual");
+      return null;
+    }
+
+    const tipo = data.weather[0].main.toLowerCase(); // ex: 'rain', 'clouds', 'clear'
+    console.log(`Clima em ${cidade}:`, tipo);
+    return tipo;
+  } catch (error) {
+    console.error("Erro ao buscar clima:", error);
+    return null;
+  }
+}
+
 
 // === AUTENTICAÇÃO ANÔNIMA AUTOMÁTICA PARA VIEWER ===
 firebase.auth().onAuthStateChanged(user => {
@@ -1458,11 +1540,115 @@ skybox.material = skyboxMaterial;
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
     NotificationSystem.show("Modelo do estacionamento carregado", "success");
   });
+
+  aplicarClimaAutomatico(scene);
+setInterval(() => aplicarClimaAutomatico(scene), 60 * 60 * 1000); // atualiza a cada 1h
+const hora = new Date().getHours();
+if (hora >= 18 || hora < 6) {
+  scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1); // noite
+} else {
+  scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0); // dia
+}
   
   setupInteractions();
   setupKeyboardControls();
   if (!isMobile) setupScrollBlocking();
 }
+
+async function aplicarClimaAutomatico(scene) {
+  const tipo = await obterClimaAtual();
+  if (!tipo) return;
+// Atualiza o painel de clima
+atualizarPainelClima(tipo);
+
+  // Remove qualquer névoa anterior
+  scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+
+  // Limpa possíveis efeitos antigos
+  if (scene._rainSystem) {
+    scene._rainSystem.stop();
+    scene._rainSystem.dispose();
+    scene._rainSystem = null;
+  }
+
+  // === CLIMA ===
+  if (tipo.includes("rain")) {
+    criarChuva(scene);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.005; // antes 0.02 — agora bem mais leve
+    scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
+    console.log("🌧️ Clima: Chuva");
+  } 
+  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("fog")) {
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.002; // antes 0.03 — névoa bem suave
+    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9); // cor mais clara e translúcida
+    console.log("🌫️ Clima: Neblina leve");
+  } 
+  else if (tipo.includes("clear")) {
+    scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    console.log("☀️ Clima: Céu limpo");
+  } 
+  else if (tipo.includes("storm") || tipo.includes("thunder")) {
+    criarChuva(scene);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.007; // tempestade moderada
+    scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
+    const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
+    light.intensity = 0.6;
+    scene.registerBeforeRender(() => relampago(scene, light));
+    console.log("⛈️ Clima: Tempestade");
+  } 
+  else {
+    scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    console.log("🌤️ Clima padrão: limpo");
+  }
+
+  // Ajuste de cor de fundo conforme hora
+  const hora = new Date().getHours();
+  if (hora >= 18 || hora < 6) {
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1); // noite
+  } else {
+    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0); // dia
+  }
+}
+
+// === Atualiza o painel de clima ===
+function atualizarPainelClima(tipo) {
+  const climaBox = document.getElementById("climaBox");
+  const climaIcon = document.getElementById("climaIcon");
+  const climaTexto = document.getElementById("climaTexto");
+
+  if (!climaBox || !climaIcon || !climaTexto) return;
+
+  climaBox.classList.remove("hidden");
+
+  // Define ícone e texto com base no tipo
+  let icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
+  let texto = "Céu limpo ☀️";
+
+  if (tipo.includes("rain")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-rain.png";
+    texto = "Chuva 🌧️";
+  } else if (tipo.includes("storm") || tipo.includes("thunder")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-lightning-and-rain.png";
+    texto = "Tempestade ⛈️";
+  } else if (tipo.includes("cloud")) {
+    icon = "https://img.icons8.com/emoji/48/cloud.png";
+    texto = "Nublado ☁️";
+  } else if (tipo.includes("mist") || tipo.includes("fog") || tipo.includes("haze")) {
+    icon = "https://img.icons8.com/emoji/48/fog.png";
+    texto = "Névoa 🌫️";
+  } else if (tipo.includes("snow")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-snow.png";
+    texto = "Neve ❄️";
+  }
+
+  // Atualiza ícone e texto
+  climaIcon.src = icon;
+  climaTexto.textContent = texto;
+}
+
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
 function toggleCameraLock() {
@@ -3104,7 +3290,6 @@ atualizarRelogio();
         login();
       }
     });
-
 
 </script>
 </body>
