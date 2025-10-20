@@ -1287,6 +1287,10 @@
 
 <script>
 
+// ===== DETECÇÃO DE PLATAFORMA E RELOAD =====
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isReload = performance && performance.navigation && performance.navigation.type === 1;
+
 // ===== CONFIGURAÇÃO E INICIALIZAÇÃO =====
 const firebaseConfig = {
   apiKey: "AIzaSyAE8AgqS_rpQygvmO6ugTX5yQSjQDwJ0vk",
@@ -1316,7 +1320,7 @@ async function obterClimaAtual() {
       return null;
     }
 
-    const tipo = data.weather[0].main.toLowerCase(); // ex: 'rain', 'clouds', 'clear'
+    const tipo = data.weather[0].main.toLowerCase();
     console.log(`Clima em ${cidade}:`, tipo);
     return tipo;
   } catch (error) {
@@ -1324,7 +1328,6 @@ async function obterClimaAtual() {
     return null;
   }
 }
-
 
 // === AUTENTICAÇÃO ANÔNIMA AUTOMÁTICA PARA VIEWER ===
 firebase.auth().onAuthStateChanged(user => {
@@ -1343,7 +1346,7 @@ firebase.auth().onAuthStateChanged(user => {
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-const engine = new BABYLON.Engine(canvas, true);
+let engine = new BABYLON.Engine(canvas, true);
 let scene, camera;
 let vagas = [];
 let vagaSelecionada = null;
@@ -1351,9 +1354,9 @@ let currentTool = 'select';
 let role = "viewer";
 let nextVagaNumber = 1;
 let pendingPosition = null;
-let carroCounter = 0;           // conta quantos carros já foram colocados
-let easterEggToggle = false;    // alterna entre car8 e car11
-
+let carroCounter = 0;
+let easterEggToggle = false;
+let vagasListener = null;
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1376,6 +1379,22 @@ const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
 const MARGEM_ESCALA = 0.95;
+
+// ===== SUPORTE PARA PASSIVE LISTENERS =====
+const supportsPassive = (() => {
+  let passiveSupported = false;
+  try {
+    const options = {
+      get passive() {
+        passiveSupported = true;
+        return false;
+      }
+    };
+    window.addEventListener("test", null, options);
+    window.removeEventListener("test", null, options);
+  } catch(err) {}
+  return passiveSupported;
+})();
 
 // ===== SISTEMA DE NOTIFICAÇÕES =====
 class NotificationSystem {
@@ -1411,80 +1430,101 @@ class NotificationSystem {
 
 // ===== INICIALIZAÇÃO DA CENA =====
 function initializeScene() {
+  // Otimizações específicas para iOS
+  if (isIOS) {
+    console.log("iOS detectado - aplicando otimizações");
+    
+    // Recria engine com opções otimizadas
+    engine.dispose();
+    engine = new BABYLON.Engine(canvas, false, {
+      preserveDrawingBuffer: false,
+      stencil: false,
+      antialias: false,
+      powerPreference: "low-power"
+    }, false);
+    
+    // Limita FPS
+    engine.targetFps = 30;
+    engine.setHardwareScalingLevel(2);
+  }
+  
   scene = new BABYLON.Scene(engine);
+  
+  // Otimizações adicionais para iOS
+  if (isIOS) {
+    scene.autoClear = false;
+    scene.autoClearDepthAndStencil = false;
+    scene.maxSimultaneousLights = 2;
+    
+    // Garbage collection mais agressivo
+    scene.registerBeforeRender(() => {
+      if (Math.random() < 0.01) {
+        scene.cleanCachedTextureBuffer();
+      }
+    });
+  }
   
   // Detectar se é mobile
   isMobile = ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || window.innerWidth <= 1024;
   
   // Câmera mais intuitiva
-if (isMobile) {
-  // ArcRotateCamera ajustada para estilo Google Maps 3D
-  camera = new BABYLON.ArcRotateCamera(
-    "mobileCam",
-    BABYLON.Tools.ToRadians(158), // ângulo inicial horizontal
-    BABYLON.Tools.ToRadians(55),  // ângulo inicial vertical
-    550,                          // distância inicial
-    new BABYLON.Vector3(-115, 10, -27), // alvo inicial (pode ser o centro do estacionamento)
-    scene
-  );
+  if (isMobile) {
+    camera = new BABYLON.ArcRotateCamera(
+      "mobileCam",
+      BABYLON.Tools.ToRadians(158),
+      BABYLON.Tools.ToRadians(55),
+      550,
+      new BABYLON.Vector3(-115, 10, -27),
+      scene
+    );
 
-  camera.attachControl(canvas, true);
+    camera.attachControl(canvas, true);
+    camera.pinchToPanMaxDistance = 50;
+    camera.panningSensibility = 8;
+    camera.angularSensibilityX = 3000;
+    camera.angularSensibilityY = 3000;
+    camera.pinchPrecision = 5;
+    camera.wheelPrecision = 50;
 
+    camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);
+    camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);
+    camera.lowerRadiusLimit = 1;
+    camera.upperRadiusLimit = 600;
+    camera.panningSensibility = 40;
+    camera.panningInertia = 0.8;
+    camera.panningDistanceLimit = 1000;
 
-  // ===== Controles de toque =====
-  camera.pinchToPanMaxDistance = 50;     // ativa pinch para zoom
-  camera.panningSensibility = 8;        // dois dedos = pan suave
-  camera.angularSensibilityX = 3000;     // rotação horizontal
-  camera.angularSensibilityY = 3000;     // rotação vertical
-  camera.pinchPrecision = 5;            // zoom de pinça mais suave
-  camera.wheelPrecision = 50;            // scroll também faz zoom
+    scene.registerBeforeRender(() => {
+      if (camera.target.y < 0) {
+        camera.target.y = 0;
+      }
+    });
 
-  // ===== Limites =====
-  camera.lowerBetaLimit = BABYLON.Tools.ToRadians(0.1);  // não atravessa o chão
-  camera.upperBetaLimit = BABYLON.Tools.ToRadians(85);   // visão quase de cima
-  camera.lowerRadiusLimit = 1;   // zoom até encostar no chão
-  camera.upperRadiusLimit = 600; // limite de afastamento
-  camera.panningSensibility = 40; // pan mais suave
-camera.panningInertia = 0.8;    // movimento suave
-camera.panningDistanceLimit = 1000; // evita "sumir" o estacionamento
-
-// Evita o alvo (target) ir abaixo do chão
-scene.registerBeforeRender(() => {
-  if (camera.target.y < 0) {
-    camera.target.y = 0;
-  }
-});
-
-  // ===== Inércia e suavidade =====
-  camera.inertia = 0.7;            // movimento fluido
-  camera.panningInertia = 0.6;     // pan suave
-} else {
-    // Desktop: Universal Camera mais intuitiva
+    camera.inertia = 0.7;
+    camera.panningInertia = 0.6;
+  } else {
     camera = new BABYLON.UniversalCamera("desktopCam", new BABYLON.Vector3(28, 80, -15), scene);
     camera.rotation.x = Math.PI / 5;
     camera.rotation.y = 10.6;
-    camera.keysUp.push(87); // W
-    camera.keysDown.push(83); // S
-    camera.keysLeft.push(65); // A
-    camera.keysRight.push(68); // D
+    camera.keysUp.push(87);
+    camera.keysDown.push(83);
+    camera.keysLeft.push(65);
+    camera.keysRight.push(68);
     camera.speed = 3;
-    camera.angularSensibility = 2000; // Rotação mais suave
+    camera.angularSensibility = 2000;
     camera.inputs.addMouseWheel();
     camera.wheelPrecision = 50;
 
-// Zoom com scroll no UniversalCamera
-canvas.addEventListener("wheel", (e) => {
-  const zoomSpeed = 2; // ajusta a sensibilidade do zoom
-  const forward = camera.getDirection(BABYLON.Axis.Z);
+    canvas.addEventListener("wheel", (e) => {
+      const zoomSpeed = 2;
+      const forward = camera.getDirection(BABYLON.Axis.Z);
 
-  if (e.deltaY < 0) {
-    // scroll pra cima = aproxima
-    camera.position.addInPlace(forward.scale(zoomSpeed));
-  } else {
-    // scroll pra baixo = afasta
-    camera.position.addInPlace(forward.scale(-zoomSpeed));
-  }
-});
+      if (e.deltaY < 0) {
+        camera.position.addInPlace(forward.scale(zoomSpeed));
+      } else {
+        camera.position.addInPlace(forward.scale(-zoomSpeed));
+      }
+    });
 
     const MIN_Y = 1, MAX_Y = 400;
     scene.registerBeforeRender(()=>{
@@ -1493,7 +1533,6 @@ canvas.addEventListener("wheel", (e) => {
     });
   }
   
-  // Limites de câmera
   if (camera.lowerRadiusLimit !== undefined) {
     camera.lowerRadiusLimit = 20;
     camera.upperRadiusLimit = 300;
@@ -1504,7 +1543,33 @@ canvas.addEventListener("wheel", (e) => {
   camera.attachControl(canvas, true);
   cameraWasAttached = true;
   
-  // Iluminação melhorada
+  // Tratamento de contexto WebGL perdido
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    console.log("WebGL context lost - prevenindo crash");
+    
+    if (engine) {
+      engine.stopRenderLoop();
+    }
+    
+    NotificationSystem.show("Recarregando recursos 3D...", "warning", 5000);
+  }, false);
+
+  canvas.addEventListener('webglcontextrestored', () => {
+    console.log("WebGL context restored");
+    
+    if (engine) {
+      engine.initWebGL();
+      engine.resize();
+      engine.runRenderLoop(() => {
+        if (scene) scene.render();
+      });
+    }
+    
+    NotificationSystem.show("Recursos 3D restaurados", "success");
+  }, false);
+  
+  // Iluminação
   const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
   hemiLight.intensity = 0.8;
   
@@ -1521,20 +1586,19 @@ canvas.addEventListener("wheel", (e) => {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
   
-// Skybox com textura realista
-const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
-skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
-const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
-skyboxMaterial.backFaceCulling = false;
-skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
-  "https://playground.babylonjs.com/textures/skybox",
-  scene
-);
-skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-skybox.material = skyboxMaterial;
-
+  // Skybox
+  const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
+  skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
+  const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+  skyboxMaterial.backFaceCulling = false;
+  skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
+    "https://playground.babylonjs.com/textures/skybox",
+    scene
+  );
+  skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+  skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+  skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+  skybox.material = skyboxMaterial;
   
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
@@ -1542,47 +1606,48 @@ skybox.material = skyboxMaterial;
   });
 
   aplicarClimaAutomatico(scene);
-setInterval(() => aplicarClimaAutomatico(scene), 60 * 60 * 1000); // atualiza a cada 1h
-const hora = new Date().getHours();
-if (hora >= 18 || hora < 6) {
-  scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1); // noite
-} else {
-  scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0); // dia
-}
+  setInterval(() => aplicarClimaAutomatico(scene), 60 * 60 * 1000);
+  
+  const hora = new Date().getHours();
+  if (hora >= 18 || hora < 6) {
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1);
+  } else {
+    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
+  }
   
   setupInteractions();
   setupKeyboardControls();
   if (!isMobile) setupScrollBlocking();
+  
+  // Iniciar Firebase sync
+  iniciarFirebaseSync();
 }
 
 async function aplicarClimaAutomatico(scene) {
   const tipo = await obterClimaAtual();
   if (!tipo) return;
-// Atualiza o painel de clima
-atualizarPainelClima(tipo);
+  
+  atualizarPainelClima(tipo);
 
-  // Remove qualquer névoa anterior
   scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
 
-  // Limpa possíveis efeitos antigos
   if (scene._rainSystem) {
     scene._rainSystem.stop();
     scene._rainSystem.dispose();
     scene._rainSystem = null;
   }
 
-  // === CLIMA ===
   if (tipo.includes("rain")) {
-    criarChuva(scene);
+    if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.005; // antes 0.02 — agora bem mais leve
+    scene.fogDensity = 0.005;
     scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
     console.log("🌧️ Clima: Chuva");
   } 
   else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("fog")) {
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.002; // antes 0.03 — névoa bem suave
-    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9); // cor mais clara e translúcida
+    scene.fogDensity = 0.002;
+    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9);
     console.log("🌫️ Clima: Neblina leve");
   } 
   else if (tipo.includes("clear")) {
@@ -1590,9 +1655,9 @@ atualizarPainelClima(tipo);
     console.log("☀️ Clima: Céu limpo");
   } 
   else if (tipo.includes("storm") || tipo.includes("thunder")) {
-    criarChuva(scene);
+    if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.007; // tempestade moderada
+    scene.fogDensity = 0.007;
     scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
     const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
     light.intensity = 0.6;
@@ -1604,16 +1669,24 @@ atualizarPainelClima(tipo);
     console.log("🌤️ Clima padrão: limpo");
   }
 
-  // Ajuste de cor de fundo conforme hora
   const hora = new Date().getHours();
   if (hora >= 18 || hora < 6) {
-    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1); // noite
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1);
   } else {
-    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0); // dia
+    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
   }
 }
 
-// === Atualiza o painel de clima ===
+function criarChuva(scene) {
+  // Desabilita chuva no iOS para evitar crashes
+  if (isIOS) {
+    console.log("Chuva desabilitada no iOS para performance");
+    return;
+  }
+  
+  // Código da chuva aqui (se tiver)
+}
+
 function atualizarPainelClima(tipo) {
   const climaBox = document.getElementById("climaBox");
   const climaIcon = document.getElementById("climaIcon");
@@ -1623,7 +1696,6 @@ function atualizarPainelClima(tipo) {
 
   climaBox.classList.remove("hidden");
 
-  // Define ícone e texto com base no tipo
   let icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
   let texto = "Céu limpo ☀️";
 
@@ -1644,11 +1716,9 @@ function atualizarPainelClima(tipo) {
     texto = "Neve ❄️";
   }
 
-  // Atualiza ícone e texto
   climaIcon.src = icon;
   climaTexto.textContent = texto;
 }
-
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
 function toggleCameraLock() {
@@ -1662,7 +1732,6 @@ function toggleCameraLock() {
   const lockText = document.getElementById('lockText');
   
   if (isCameraLocked) {
-    // Desbloquear câmera
     isCameraLocked = false;
     camera.attachControl(canvas, true);
     cameraWasAttached = true;
@@ -1673,10 +1742,8 @@ function toggleCameraLock() {
     
     NotificationSystem.show("Câmera desbloqueada - Navegação livre", "success");
   } else {
-    // Bloquear câmera na posição atual
     isCameraLocked = true;
     
-    // Salvar estado atual
     savedCameraState = {
       position: camera.position.clone(),
       rotation: camera.rotation ? camera.rotation.clone() : null,
@@ -1701,18 +1768,14 @@ function toggleCameraLock() {
 
 // ===== BLOQUEIO DE SCROLL PARA DESKTOP =====
 function setupScrollBlocking() {
-  // Intercepta o wheel para: 1) rotacionar vaga no modo edição; 2) controlar zoom da câmera.
   canvas.addEventListener('wheel', (e) => {
-    // Evita scroll da página
     e.preventDefault();
     e.stopPropagation();
 
-    // Se câmera bloqueada, não faz nada com o scroll
     if (isCameraLocked) {
       return false;
     }
 
-    // ---------- Caso: estou editando + CTRL + vaga selecionada => rotaciona a vaga ----------
     if (isEditingMode && isCtrlPressed && vagaSelecionada) {
       const delta = e.deltaY;
       const rotationStep = BABYLON.Tools.ToRadians(delta > 0 ? 3 : -3);
@@ -1722,46 +1785,33 @@ function setupScrollBlocking() {
       return false;
     }
 
-    // ---------- Caso: zoom da câmera ----------
     if (!camera) return false;
 
     const delta = e.deltaY;
+    const arcZoomSpeed = 0.1;
+    const universalZoomFactor = 0.1;
 
-    // Ajustes sensíveis — vá testando esses valores
-    const arcZoomSpeed = 0.1;        // para ArcRotateCamera (afeta radius)
-    const universalZoomFactor = 0.1; // para UniversalCamera (move position)
-
-    // Se for ArcRotateCamera -> altera radius
     if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
-      // delta > 0 -> roda pra baixo (afastar); delta < 0 -> aproximar
       camera.radius += delta * arcZoomSpeed;
 
-      // garante limites se definidos
       if (camera.lowerRadiusLimit !== undefined) {
         if (camera.radius < camera.lowerRadiusLimit) camera.radius = camera.lowerRadiusLimit;
         if (camera.radius > camera.upperRadiusLimit) camera.radius = camera.upperRadiusLimit;
       }
     }
-    // Se for UniversalCamera -> move a câmera ao longo do eixo forward
     else if (camera.getClassName && camera.getClassName() === "UniversalCamera") {
-      // getDirection espera um vetor local; Axis.Z é o "forward" local
       let forward = camera.getDirection(BABYLON.Axis.Z);
       forward.normalize();
-
-      // intenção: scroll pra cima (delta < 0) = aproximar -> mover forward positivo
-      // usamos -delta para que delta negativo aproxime (porque delta é negativo ao scroll up)
       camera.position.addInPlace(forward.scale(-delta * universalZoomFactor));
 
-      // Mantém a câmera acima do chão (reaplica clamp que tens em scene.registerBeforeRender)
-      const GROUND_Y = -0.05; // ajusta se teu ground tiver outra altura
+      const GROUND_Y = -0.05;
       const MIN_Y = GROUND_Y + 1;
       if (camera.position.y < MIN_Y) camera.position.y = MIN_Y;
     }
 
     return false;
-  }, { passive: false, capture: true });
+  }, supportsPassive ? { passive: false, capture: true } : false);
 }
-
 
 // ===== CONTROLES DE TECLADO =====
 function setupKeyboardControls() {
@@ -1782,7 +1832,6 @@ function setupKeyboardControls() {
       cancelVagaEdit();
     }
     
-    // Teclas rápidas para vistas
     if (e.key === 'T' || e.key === 't') {
       setTopView();
     }
@@ -1811,13 +1860,11 @@ function setupKeyboardControls() {
 
 function resetCamera() {
   if (camera.getClassName() === "ArcRotateCamera") {
-    // Mobile
     camera.setTarget(new BABYLON.Vector3(-115, 10, -27));
     camera.alpha = BABYLON.Tools.ToRadians(158);
     camera.beta = BABYLON.Tools.ToRadians(55);
     camera.radius = 550;
   } else {
-    // Desktop
     camera.position = new BABYLON.Vector3(24, 80, -15);
     camera.rotation.x = Math.PI / 5;
     camera.rotation.y = 10.6;
@@ -1825,12 +1872,11 @@ function resetCamera() {
   NotificationSystem.show("Câmera resetada", "info", 2000);
 }
 
-
 function setTopView() {
   if (camera.getClassName() === "ArcRotateCamera") {
     camera.setTarget(new BABYLON.Vector3(-105, 0, -38));
     camera.alpha = 0;
-    camera.beta = Math.PI / 10;   // visão de cima
+    camera.beta = Math.PI / 10;
     camera.radius = 200;
   } else {
     camera.position = new BABYLON.Vector3(-95, 450, -40);
@@ -1843,7 +1889,7 @@ function setIsometricView() {
   if (camera.getClassName() === "ArcRotateCamera") {
     camera.setTarget(new BABYLON.Vector3(-25, 50, -23));
     camera.alpha = Math.PI / 15;  
-    camera.beta = Math.PI / 3;    // inclinado
+    camera.beta = Math.PI / 3;
     camera.radius = 170;
   } else {
     camera.position = new BABYLON.Vector3(-220, 150, -100);
@@ -1853,7 +1899,6 @@ function setIsometricView() {
   }
   NotificationSystem.show("Vista isométrica ativada", "info", 2000);
 }
-
 
 function focusOnSelected() {
   if (!vagaSelecionada) {
@@ -1867,20 +1912,16 @@ function focusOnSelected() {
     camera.setTarget(target);
     camera.radius = 40;
   } else {
-const distance = 20;   // distância atrás do objeto
-    const height = 15;     // altura da câmera
-
-    // pega a direção atual da câmera (para saber o ângulo de visão)
+    const distance = 20;
+    const height = 15;
     const forward = camera.getDirection(BABYLON.Axis.Z);
 
-    // reposiciona a câmera "atrás" do alvo mantendo distância
     camera.position = new BABYLON.Vector3(
       target.x - forward.x * distance,
       target.y + height,
       target.z - forward.z * distance
     );
 
-    // faz a câmera olhar para a vaga
     camera.setTarget(target);
   }
   
@@ -2208,7 +2249,6 @@ function selectVaga(vaga) {
   }
 }
 
-//EASTEREGG
 function escolherCarroNormal() {
   carroCounter++;
   
@@ -2220,7 +2260,6 @@ function escolherCarroNormal() {
   return CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
 }
 
-
 // ===== OPERAÇÕES DE VAGA =====
 async function ocuparVaga() {
   if (role === "viewer" || !vagaSelecionada || vagaSelecionada.ocupada) return;
@@ -2228,12 +2267,10 @@ async function ocuparVaga() {
   vagaSelecionada.ocupada = true;
   vagaSelecionada.carModel = escolherCarroNormal();
 
-
-// Fixar carpo.glb nas vagas 14 e 15
-const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 14 || _num === 15) {
-  vagaSelecionada.carModel = 'carpo.glb';
-}
+  const _num = parseInt((vagaSelecionada.numero || '').replace('VAGA ', '')) || 0;
+  if (_num === 14 || _num === 15) {
+    vagaSelecionada.carModel = 'carpo.glb';
+  }
 
   if (vagaSelecionada.mesh.material) {
     vagaSelecionada.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
@@ -2313,7 +2350,7 @@ function deleteVaga() {
   updateUI();
 }
 
-// ===== NOVAS OPERAÇÕES EM LOTE =====
+// ===== OPERAÇÕES EM LOTE COM OTIMIZAÇÃO PARA iOS =====
 async function ocuparTodas() {
   if (role === "viewer") {
     NotificationSystem.show("Sem permissão para ocupar vagas", "error");
@@ -2332,36 +2369,42 @@ async function ocuparTodas() {
   }
   
   let sucessos = 0;
+  const batchSize = isIOS ? 3 : 10; // Carrega menos carros por vez no iOS
   
-  for (let vaga of livres) {
-    try {
-      vaga.ocupada = true;
-      vaga.carModel = escolherCarroNormal();
-
-
-// Fixar carpo.glb nas vagas 14 e 15
-const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 14 || _num === 15) {
-  vaga.carModel = 'carpo.glb';
-}
-
-
-      
-      if (vaga.mesh.material) {
-        vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-        vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+  for (let i = 0; i < livres.length; i += batchSize) {
+    const batch = livres.slice(i, i + batchSize);
+    
+    await Promise.all(batch.map(async (vaga) => {
+      try {
+        vaga.ocupada = true;
+        vaga.carModel = escolherCarroNormal();
+        
+        const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+        if (_num === 14 || _num === 15) {
+          vaga.carModel = 'carpo.glb';
+        }
+        
+        if (vaga.mesh.material) {
+          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+        }
+        
+        const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+        vaga.carro = carro;
+        
+        if (vaga.id) {
+          await atualizarFirebase(vaga, vaga.id);
+        }
+        
+        sucessos++;
+      } catch (e) {
+        console.error("Erro ao ocupar vaga:", vaga.numero, e);
       }
-      
-      const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-      vaga.carro = carro;
-      
-      if (vaga.id) {
-        await atualizarFirebase(vaga, vaga.id);
-      }
-      
-      sucessos++;
-    } catch (e) {
-      console.error("Erro ao ocupar vaga:", vaga.numero, e);
+    }));
+    
+    // Pausa entre lotes no iOS
+    if (isIOS && i + batchSize < livres.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   
@@ -2430,10 +2473,10 @@ async function excluirTodas() {
   
   const totalVagas = vagas.length;
   
-  // Excluir todas as vagas
   for (let vaga of vagas) {
     if (vaga.carro) {
       vaga.carro.dispose();
+      vaga.carro = null;
     }
     
     if (vaga.mesh._labelPlane) {
@@ -2447,7 +2490,6 @@ async function excluirTodas() {
     }
   }
   
-  // Limpar arrays
   vagas = [];
   vagaSelecionada = null;
   nextVagaNumber = 1;
@@ -2479,7 +2521,7 @@ function exportarDados() {
   NotificationSystem.show("Dados exportados", "success");
 }
 
-// ===== SISTEMA DE CARROS =====
+// ===== SISTEMA DE CARROS OTIMIZADO PARA iOS =====
 function getSizeOf(node) {
   const bv = node.getHierarchyBoundingVectors(true);
   return { size: bv.max.subtract(bv.min), bv };
@@ -2528,23 +2570,58 @@ function escalarParaVaga(carroRoot) {
 async function carregarCarroNormalizado(vaga, modelFile) {
   const file = modelFile || CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
   
-  const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(CAR_BASE_URL, file, scene);
-  const carroRoot = new BABYLON.TransformNode("carroRoot", scene);
-  
-  // Adiciona manualmente os meshes e materiais
-  container.meshes.forEach(m => {
-    if (m.parent == null) m.parent = carroRoot;
-    scene.addMesh(m); // adiciona à cena sem usar addAllToScene
-  });
-  container.materials.forEach(mat => scene.addMaterial(mat));
+  try {
+    // Adiciona timeout para iOS
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout loading model')), 5000)
+    );
+    
+    const loadPromise = BABYLON.SceneLoader.LoadAssetContainerAsync(
+      CAR_BASE_URL, 
+      file, 
+      scene
+    );
+    
+    const container = await Promise.race([loadPromise, timeoutPromise]);
+    
+    // Limpa texturas não utilizadas (importante para iOS)
+    if (isIOS) {
+      scene.cleanCachedTextureBuffer();
+    }
+    
+    const carroRoot = new BABYLON.TransformNode("carroRoot", scene);
+    
+    // Otimização para iOS: simplifica materiais
+    container.meshes.forEach(m => {
+      if (m.parent == null) m.parent = carroRoot;
+      
+      // Reduz qualidade de texturas no iOS
+      if (m.material && isIOS) {
+        m.material.freeze(); // Congela material para economizar memória
+      }
+      
+      scene.addMesh(m);
+    });
+    
+    container.materials.forEach(mat => {
+      if (isIOS) {
+        mat.freeze(); // Congela materiais no iOS
+      }
+      scene.addMaterial(mat);
+    });
 
-  carroRoot.rotationQuaternion = null;
-  normalizarOrientacao(carroRoot);
-  escalarParaVaga(carroRoot);
-  carroRoot.rotation.y = vaga.mesh.rotation.y;
-  posicionarSobreVaga(carroRoot, vaga.mesh);
-  
-  return carroRoot;
+    carroRoot.rotationQuaternion = null;
+    normalizarOrientacao(carroRoot);
+    escalarParaVaga(carroRoot);
+    carroRoot.rotation.y = vaga.mesh.rotation.y;
+    posicionarSobreVaga(carroRoot, vaga.mesh);
+    
+    return carroRoot;
+    
+  } catch (error) {
+    console.error("Erro ao carregar modelo:", error);
+    throw error;
+  }
 }
 
 function canWrite() {
@@ -2556,7 +2633,7 @@ function atualizarFirebase(vaga, id) {
     NotificationSystem.show("Sem permissão para alterar dados", "error");
     return;
   }
-  db.ref('vagas/' + id).update({
+  return db.ref('vagas/' + id).update({
     x: vaga.mesh.position.x,
     y: vaga.mesh.position.y,
     z: vaga.mesh.position.z,
@@ -2566,7 +2643,6 @@ function atualizarFirebase(vaga, id) {
     numero: vaga.numero
   });
 }
-
 
 // ===== INTERAÇÕES APRIMORADAS =====
 function setupInteractions() {
@@ -2580,12 +2656,9 @@ function setupInteractions() {
         const vaga = vagas.find(v => v.mesh === pickedMesh);
 
         if (vaga) {
-          // Clicou em uma vaga → seleciona normalmente
           selectVaga(vaga);
         } else {
-          // Clicou fora de qualquer vaga → deseleciona
           if (vagaSelecionada) {
-            // Restaura cor da vaga anterior
             const color = vagaSelecionada.ocupada
               ? new BABYLON.Color3(0.8, 0.2, 0.2)
               : new BABYLON.Color3(0, 0.8, 0.3);
@@ -2603,7 +2676,6 @@ function setupInteractions() {
           const deltaX = scene.pointerX - lastPointerPosition.x;
           const deltaY = scene.pointerY - lastPointerPosition.y;
           
-          // Sistema de drag intuitivo melhorado
           let forward, right;
           
           if (camera.getClassName && camera.getClassName() === "ArcRotateCamera") {
@@ -2627,7 +2699,7 @@ function setupInteractions() {
           forward.normalize();
           right.normalize();
           
-          const sensitivity = 0.012; // Sensibilidade ainda mais ajustada
+          const sensitivity = 0.012;
           
           const moveRight = right.scale(deltaX * sensitivity);
           const moveForward = forward.scale(-deltaY * sensitivity);
@@ -2654,44 +2726,17 @@ function setupInteractions() {
   });
 }
 
-let moveInterval = null;
+// ===== SISTEMA DE AUTENTICAÇÃO =====
+const ROLE_CREDENTIALS = {
+  viewer:  { email: "viewer@smamus3d.com" },
+  operator:{ email: "operador@smamus3d.com", password: "op1234" },
+  admin:   { email: "admin@smamus3d.com", password: "smamusAdmin" }
+};
 
-function moveCamera(dir, continuous = false) {
-  if (!camera) return;
-  const step = 4; // passo maior que antes (antes era 2)
-
-  switch (dir) {
-    case 'forward':
-      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(step));
-      break;
-    case 'back':
-      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-step));
-      break;
-    case 'left':
-      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(-step));
-      break;
-    case 'right':
-      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
-      break;
-  }
-
-  if (continuous && !moveInterval) {
-    moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
-  }
-}
-
-function stopMoveCamera() {
-  if (moveInterval) {
-    clearInterval(moveInterval);
-    moveInterval = null;
-  }
-}
-
-// NOVA FUNÇÃO de login usando Firebase Auth (mantém a escolha por role no select)
 function login() {
   const selectedRole = document.getElementById("roleSelect").value || "viewer";
   const userPassInput = document.getElementById("userPass");
-  const enteredPassword = userPassInput.value; // <-- 1. CAPTURA A SENHA DIGITADA
+  const enteredPassword = userPassInput.value;
 
   const creds = ROLE_CREDENTIALS[selectedRole];
 
@@ -2700,18 +2745,13 @@ function login() {
     return;
   }
   
-  // 2. VALIDAÇÃO ADICIONAL: Se for operador ou admin, a senha é obrigatória
   if (selectedRole !== "viewer" && (!creds.password || enteredPassword !== creds.password)) {
       NotificationSystem.show("Senha incorreta ou ausente. Tente novamente.", "error");
-      userPassInput.value = ""; // Limpa a senha
+      userPassInput.value = "";
       return;
   }
-
-  // Se o login for de 'viewer', ele não tem senha no objeto ROLE_CREDENTIALS e o input é ignorado (como é um viewer, isso é aceitável no seu contexto)
   
-  // 3. FAZ O LOGIN NO FIREBASE APENAS SE FOR OPERADOR OU ADMIN
   if (selectedRole === "viewer") {
-      // Para o viewer, apenas atualiza a UI, não precisa do Firebase Auth
       role = selectedRole;
       NotificationSystem.show(`Logado como ${role}`, "success");
       updateUIAfterLogin && updateUIAfterLogin(role);
@@ -2720,14 +2760,11 @@ function login() {
       return;
   }
 
-  // Faz signIn com email/senha (USANDO A SENHA CORRETA DO OBJETO)
   firebase.auth().signInWithEmailAndPassword(creds.email, creds.password)
     .then(async (userCredential) => {
-      // ... (O restante da sua lógica de validação de role no DB permanece) ...
       const user = userCredential.user;
       const uid = user.uid;
 
-      // Puxa o papel real do DB (roles/UID) e valida
       const snap = await db.ref("roles/" + uid).once("value");
       const actualRole = snap.val();
 
@@ -2743,13 +2780,12 @@ function login() {
         return;
       }
 
-      // Sucesso: atualiza UI e variável role
       role = actualRole;
       document.getElementById("roleBadge").textContent =
         role === "admin" ? "Administrador" : role === "operator" ? "Operador" : "Usuário";
 
       NotificationSystem.show(`Logado como ${role}`, "success");
-      updateUIAfterLogin && updateUIAfterLogin(role); // chama se existir
+      updateUIAfterLogin && updateUIAfterLogin(role);
       const logoutBtn = document.getElementById("logoutBtn");
       if (logoutBtn) logoutBtn.classList.remove("hidden");
 
@@ -2759,13 +2795,6 @@ function login() {
       userPassInput.value = "";
     });
 }
-// ===== SISTEMA DE AUTENTICAÇÃO =====
-// Credenciais pré-criadas (usa apenas para UX — ver nota de segurança abaixo)
-const ROLE_CREDENTIALS = {
-  viewer:  { email: "viewer@smamus3d.com" },
-  operator:{ email: "operador@smamus3d.com", password: "op1234" },
-  admin:   { email: "admin@smamus3d.com", password: "smamusAdmin" }
-};
 
 function updateUIAfterLogin(role) {
   const controlPanel = document.getElementById("controlPanel");
@@ -2776,15 +2805,12 @@ function updateUIAfterLogin(role) {
   const deleteButtons = document.querySelectorAll(".danger-btn");
   const roleBadge = document.getElementById("roleBadge");
 
-  // 👉 Mostra o botão de logout para qualquer usuário logado
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) logoutBtn.classList.remove("hidden");
 
-  // 👉 Desativa o seletor de role enquanto logado
   const roleSelect = document.getElementById("roleSelect");
   if (roleSelect) roleSelect.disabled = true;
 
-  // Atualiza o badge visual
   if (roleBadge) {
     roleBadge.textContent =
       role === "admin"
@@ -2801,7 +2827,6 @@ function updateUIAfterLogin(role) {
         : "role-viewer");
   }
 
-  // ===== VIEWER =====
   if (role === "viewer") {
     if (controlPanel) controlPanel.style.display = "block";
     if (vagaActions) vagaActions.style.display = "none";
@@ -2810,8 +2835,6 @@ function updateUIAfterLogin(role) {
     if (editTool) editTool.style.display = "none";
     deleteButtons.forEach(btn => (btn.style.display = "none"));
   }
-
-  // ===== OPERATOR =====
   else if (role === "operator") {
     if (controlPanel) controlPanel.style.display = "block";
     if (vagaActions) vagaActions.style.display = "block";
@@ -2820,8 +2843,6 @@ function updateUIAfterLogin(role) {
     if (editTool) editTool.style.display = "none";
     deleteButtons.forEach(btn => (btn.style.display = "block"));
   }
-
-  // ===== ADMIN =====
   else if (role === "admin") {
     if (controlPanel) controlPanel.style.display = "block";
     if (vagaActions) vagaActions.style.display = "block";
@@ -2834,7 +2855,6 @@ function updateUIAfterLogin(role) {
   console.log(`Interface ajustada para role: ${role}`);
 }
 
-// Função para deslogar
 function logout() {
   firebase.auth().signOut().then(() => {
     role = "viewer";
@@ -2842,22 +2862,17 @@ function logout() {
     document.getElementById("roleBadge").className = "role-badge role-viewer";
     NotificationSystem.show("Logout realizado com sucesso", "info");
 
-    // Oculta o botão de logout
     document.getElementById("logoutBtn").classList.add("hidden");
     document.getElementById("userPass").value = "";
 
-    // Atualiza a UI para modo usuário (mantém menu)
     updateUIAfterLogin("viewer");
 
-    // Reabilita seletor de role após restaurar a interface
     const roleSelect = document.getElementById("roleSelect");
     if (roleSelect) roleSelect.disabled = false;
   }).catch((error) => {
     NotificationSystem.show("Erro ao fazer logout: " + error.message, "error");
   });
 }
-
-
 
 // ===== INTERFACE DE USUÁRIO =====
 function updateUI() {
@@ -2926,50 +2941,47 @@ function updateVagasList() {
     return numA - numB;
   });
   
- container.innerHTML = '';
+  container.innerHTML = '';
 
-filteredVagas.forEach(vaga => {
-  const isEditing = isEditingMode && vaga === vagaSelecionada;
-  const item = document.createElement('div');
-  item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
-  
-  const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
-  const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
-  
-  item.innerHTML = `
-    <div class="vaga-header">
-      <div class="vaga-numero">${vaga.numero}</div>
-      <div class="vaga-status ${statusClass}">
-        ${statusText}
+  filteredVagas.forEach(vaga => {
+    const isEditing = isEditingMode && vaga === vagaSelecionada;
+    const item = document.createElement('div');
+    item.className = `vaga-item ${vaga.ocupada ? 'ocupada' : 'livre'} ${vaga === vagaSelecionada ? (isEditing ? 'editing' : 'selected') : ''}`;
+    
+    const statusText = isEditing ? 'Editando' : (vaga.ocupada ? 'Ocupada' : 'Livre');
+    const statusClass = isEditing ? 'status-editing' : (vaga.ocupada ? 'status-ocupada' : 'status-livre');
+    
+    item.innerHTML = `
+      <div class="vaga-header">
+        <div class="vaga-numero">${vaga.numero}</div>
+        <div class="vaga-status ${statusClass}">
+          ${statusText}
+        </div>
       </div>
-    </div>
 
-    <div class="vaga-actions">
-      <!-- 🔹 Botão Ver: sempre aparece -->
-      <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
-        <i class="fas fa-eye"></i> Ver
-      </button>
-
-      <!-- 🔹 Outros botões: só se não for viewer -->
-      ${role !== 'viewer' && !isEditing ? `
-        <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
-          <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
-          ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
+      <div class="vaga-actions">
+        <button class="mini-btn" onclick="selectVaga(vagas.find(v => v.id === '${vaga.id}')); focusOnSelected();">
+          <i class="fas fa-eye"></i> Ver
         </button>
-        ${role === 'admin' ? `
-          <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
-            <i class="fas fa-edit"></i> Editar
+
+        ${role !== 'viewer' && !isEditing ? `
+          <button class="mini-btn" onclick="toggleVagaStatus('${vaga.id}')">
+            <i class="fas fa-${vaga.ocupada ? 'car-side' : 'car'}"></i>
+            ${vaga.ocupada ? 'Liberar' : 'Ocupar'}
           </button>
+          ${role === 'admin' ? `
+            <button class="mini-btn" onclick="selectVagaAndEdit('${vaga.id}')">
+              <i class="fas fa-edit"></i> Editar
+            </button>
+          ` : ''}
         ` : ''}
-      ` : ''}
-    </div>
-  `;
+      </div>
+    `;
 
-  item.addEventListener('click', () => selectVaga(vaga));
-  container.appendChild(item);
-});
+    item.addEventListener('click', () => selectVaga(vaga));
+    container.appendChild(item);
+  });
 }
-
 
 function selectVagaAndEdit(vagaId) {
   const vaga = vagas.find(v => v.id === vagaId);
@@ -2992,23 +3004,280 @@ async function toggleVagaStatus(vagaId) {
   }
 }
 
-// ===== FIREBASE SYNC =====
-function atualizarFirebase(vaga, id) {
-  return db.ref('vagas/' + id).set({
-    x: vaga.mesh.position.x,
-    y: vaga.mesh.position.y,
-    z: vaga.mesh.position.z,
-    rotY: vaga.mesh.rotation.y,
-    ocupada: vaga.ocupada,
-    carModel: vaga.carModel || null,
-    numero: vaga.numero || null
-  });
+// ===== FIREBASE SYNC COM CLEANUP =====
+function iniciarFirebaseSync() {
+  // Remove listener anterior se existir
+  if (vagasListener) {
+    db.ref('vagas').off('value', vagasListener);
+  }
+  
+  vagasListener = async (snapshot) => {
+    const data = snapshot.val();
+    
+    if (!data) {
+      // Limpa vagas existentes com dispose adequado
+      for (let v of vagas) {
+        if (v.carro) {
+          v.carro.dispose();
+          v.carro = null;
+        }
+        if (v.mesh) {
+          if (v.mesh._labelPlane) v.mesh._labelPlane.dispose();
+          v.mesh.dispose();
+        }
+      }
+      vagas = [];
+      nextVagaNumber = 1;
+      updateUI();
+      return;
+    }
+    
+    let maxNum = 0;
+    Object.keys(data).forEach(id => {
+      const num = parseInt(data[id].numero?.replace('VAGA ', '')) || 0;
+      if (num > maxNum) maxNum = num;
+    });
+    nextVagaNumber = maxNum + 1;
+    
+    Object.keys(data).forEach(async (id) => {
+      const vData = data[id];
+      let vaga = vagas.find(v => v.id === id);
+      
+      if (!vaga) {
+        const mesh = criarVagaContorno(new BABYLON.Vector3(vData.x, vData.y, vData.z));
+        mesh.rotation.y = vData.rotY || 0;
+        
+        if (vData.ocupada && mesh.material) {
+          mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+          mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+        }
+        
+        const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
+        vaga = {
+          mesh,
+          ocupada: vData.ocupada,
+          carro: null,
+          id,
+          carModel: vData.carModel || null,
+          numero
+        };
+
+        const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
+        if ((_numCriada === 14 || _numCriada === 15) && vaga.ocupada) {
+          vaga.carModel = 'carpo.glb';
+        }
+        
+        vagas.push(vaga);
+        
+        if (!vData.numero) {
+          db.ref('vagas/' + id + '/numero').set(numero);
+        }
+        
+        adicionarNumeroNaVaga(mesh, numero.replace("VAGA ", ""));
+        
+        if (vaga.ocupada && !vaga.carro) {
+          // Delay escalonado para iOS
+          if (isIOS) {
+            setTimeout(async () => {
+              try {
+                const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+                vaga.carro = carro;
+              } catch (e) {
+                console.error("Erro ao carregar carro:", e);
+              }
+            }, Math.random() * 2000);
+          } else {
+            try {
+              const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+              vaga.carro = carro;
+            } catch (e) {
+              console.error("Erro ao carregar carro:", e);
+            }
+          }
+        }
+      } else {
+        vaga.mesh.position.x = vData.x;
+        vaga.mesh.position.y = vData.y;
+        vaga.mesh.position.z = vData.z;
+        vaga.mesh.rotation.y = vData.rotY || 0;
+        
+        const wasOccupied = vaga.ocupada;
+        vaga.ocupada = vData.ocupada;
+        vaga.carModel = vData.carModel || null;
+        vaga.numero = vData.numero || vaga.numero || null;
+        
+        const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+        if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
+          vaga.carModel = 'carpo.glb';
+        }
+        
+        if (!isEditingMode || vaga !== vagaSelecionada) {
+          if (vaga.ocupada && vaga.mesh.material) {
+            vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+            vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+          } else if (vaga.mesh.material) {
+            vaga.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+            vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+          }
+        }
+        
+        if (vaga.ocupada && !vaga.carro) {
+          if (isIOS) {
+            setTimeout(async () => {
+              try {
+                const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+                vaga.carro = carro;
+              } catch (e) {
+                console.error("Erro ao carregar carro:", e);
+              }
+            }, Math.random() * 2000);
+          } else {
+            try {
+              const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+              vaga.carro = carro;
+            } catch (e) {
+              console.error("Erro ao carregar carro:", e);
+            }
+          }
+        } else if (!vaga.ocupada && vaga.carro) {
+          vaga.carro.dispose();
+          vaga.carro = null;
+        }
+        
+        if (vaga.mesh._labelTextBlock) {
+          vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ", "");
+        }
+        
+        if (!vData.numero && vaga.numero) {
+          db.ref('vagas/' + id + '/numero').set(vaga.numero);
+        }
+      }
+    });
+    
+    updateUI();
+  };
+  
+  db.ref('vagas').on('value', vagasListener);
 }
+
+// ===== LIMPEZA COMPLETA PARA iOS =====
+window.addEventListener('beforeunload', () => {
+  console.log("Limpando recursos antes de sair...");
+  
+  // Para todos os observers do Firebase
+  if (vagasListener) {
+    db.ref('vagas').off('value', vagasListener);
+  }
+  
+  // Limpa todos os carros e vagas
+  vagas.forEach(vaga => {
+    if (vaga.carro) {
+      vaga.carro.dispose();
+    }
+    if (vaga.mesh) {
+      if (vaga.mesh._labelPlane) {
+        vaga.mesh._labelPlane.dispose();
+      }
+      if (vaga.mesh._labelADT) {
+        vaga.mesh._labelADT.dispose();
+      }
+      vaga.mesh.dispose();
+    }
+  });
+  
+  // Limpa a cena completamente
+  if (scene) {
+    scene.dispose();
+  }
+  
+  // Para e limpa a engine
+  if (engine) {
+    engine.stopRenderLoop();
+    engine.dispose();
+  }
+  
+  // Limpa arrays
+  vagas = [];
+  vagaSelecionada = null;
+  
+  // Remove todos os event listeners
+  canvas.removeEventListener('wheel', null);
+  window.removeEventListener('keydown', null);
+  window.removeEventListener('keyup', null);
+});
+
+// iOS específico: força limpeza de contexto WebGL
+window.addEventListener('pagehide', () => {
+  if (engine && engine._gl) {
+    const gl = engine._gl;
+    const loseContext = gl.getExtension('WEBGL_lose_context');
+    if (loseContext) {
+      loseContext.loseContext();
+    }
+  }
+});
+
+// ===== MONITORAMENTO DE MEMÓRIA =====
+if ('performance' in window && 'memory' in performance) {
+  setInterval(() => {
+    const memInfo = performance.memory;
+    const usagePercent = memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit;
+    
+    if (usagePercent > 0.9) {
+      console.warn("Memória alta detectada, limpando cache...");
+      scene.cleanCachedTextureBuffer();
+      
+      // Remove carros das vagas mais distantes da câmera
+      if (camera && vagas.length > 10) {
+        const cameraPos = camera.position;
+        vagas
+          .filter(v => v.carro)
+          .sort((a, b) => {
+            const distA = BABYLON.Vector3.Distance(a.mesh.position, cameraPos);
+            const distB = BABYLON.Vector3.Distance(b.mesh.position, cameraPos);
+            return distB - distA;
+          })
+          .slice(0, 3)
+          .forEach(v => {
+            if (v.carro) {
+              v.carro.setEnabled(false);
+            }
+          });
+      }
+    }
+  }, 5000);
+}
+
+// ===== INICIALIZAÇÃO =====
+if (isIOS && isReload) {
+  console.log("Reload detectado no iOS - aplicando otimizações");
+  
+  // Força limpeza do cache de texturas
+  if (typeof BABYLON !== 'undefined' && BABYLON.Engine) {
+    BABYLON.Engine.audioEngine = null;
+  }
+  
+  // Pequeno delay antes de inicializar para dar tempo do Safari limpar recursos
+  setTimeout(() => {
+    initializeScene();
+    engine.runRenderLoop(() => scene.render());
+  }, 100);
+} else {
+  // Inicialização normal
+  initializeScene();
+  engine.runRenderLoop(() => scene.render());
+}
+
+window.addEventListener("resize", () => {
+  engine.resize();
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // ===== EVENT LISTENERS =====
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
-    NotificationSystem.show("Sistema 3D otimizado - Controles intuitivos e bloqueio de câmera disponível", "info", 5000);
+    NotificationSystem.show("Sistema 3D otimizado para iOS - Performance melhorada", "info", 5000);
   }, 2000);
 
   document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -3026,9 +3295,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const panel = document.getElementById(panelId);
       const handle = panel.querySelector('.mobile-handle');
       
-      handle.addEventListener('click', () => {
-        panel.classList.toggle('expanded');
-      });
+      if (handle) {
+        handle.addEventListener('click', () => {
+          panel.classList.toggle('expanded');
+        });
+      }
     });
   }
   
@@ -3037,156 +3308,74 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quantityGroup').style.display = isSingle ? 'none' : 'block';
     document.getElementById('spacingGroup').style.display = isSingle ? 'none' : 'block';
   });
-});
-
-// ===== SYNC FIREBASE =====
-db.ref('vagas').on('value', snapshot => {
-  const data = snapshot.val();
   
-  if (!data) {
-    vagas.forEach(v => {
-      if (v.mesh) {
-        if (v.mesh._labelPlane) v.mesh._labelPlane.dispose();
-        v.mesh.dispose();
+  // Hamburger menu
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const controlPanel = document.getElementById("controlPanel");
+
+  if (hamburgerBtn && controlPanel) {
+    hamburgerBtn.addEventListener("click", (e) => {
+      if (controlPanel.classList.contains("mobile-open")) {
+        controlPanel.classList.add("hiding");
+        setTimeout(()=> {
+          controlPanel.classList.remove("mobile-open", "showing", "hiding");
+        }, 180);
+      } else {
+        controlPanel.classList.add("mobile-open");
+        void controlPanel.offsetWidth;
+        controlPanel.classList.add("showing");
       }
     });
-    vagas = [];
-    nextVagaNumber = 1;
-    updateUI();
-    return;
+
+    document.addEventListener("click", (ev) => {
+      if (!controlPanel.classList.contains("mobile-open")) return;
+      const target = ev.target;
+      if (target === hamburgerBtn || controlPanel.contains(target)) return;
+      controlPanel.classList.add("hiding");
+      setTimeout(()=> {
+        controlPanel.classList.remove("mobile-open", "showing", "hiding");
+      }, 180);
+    });
+
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && controlPanel.classList.contains("mobile-open")) {
+        controlPanel.classList.add("hiding");
+        setTimeout(()=> {
+          controlPanel.classList.remove("mobile-open", "showing", "hiding");
+        }, 120);
+      }
+    });
   }
   
-  let maxNum = 0;
-  Object.keys(data).forEach(id => {
-    const num = parseInt(data[id].numero?.replace('VAGA ', '')) || 0;
-    if (num > maxNum) maxNum = num;
-  });
-  nextVagaNumber = maxNum + 1;
+  // Relógio
+  function atualizarRelogio() {
+    const agora = new Date();
+    const horas = String(agora.getHours()).padStart(2, '0');
+    const minutos = String(agora.getMinutes()).padStart(2, '0');
+    const segundos = String(agora.getSeconds()).padStart(2, '0');
+    const dia = String(agora.getDate()).padStart(2, '0');
+    const mes = String(agora.getMonth() + 1).padStart(2, '0');
+    const ano = agora.getFullYear();
+
+    document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
+    document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
+  }
+
+  setInterval(atualizarRelogio, 1000);
+  atualizarRelogio();
   
-  Object.keys(data).forEach(async (id) => {
-    const vData = data[id];
-    let vaga = vagas.find(v => v.id === id);
-    
-    if (!vaga) {
-      const mesh = criarVagaContorno(new BABYLON.Vector3(vData.x, vData.y, vData.z));
-      mesh.rotation.y = vData.rotY || 0;
-      
-      if (vData.ocupada && mesh.material) {
-        mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-        mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
-      }
-      
-      const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
-      vaga = {
-        mesh,
-        ocupada: vData.ocupada,
-        carro: null,
-        id,
-        carModel: vData.carModel || null,
-        numero
-      };
-
-	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
-const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
-if ((_numCriada === 14 || _numCriada === 15) && vaga.ocupada) {
-  vaga.carModel = 'carpo.glb';
-}
-
-
-      
-      vagas.push(vaga);
-      
-      if (!vData.numero) {
-        db.ref('vagas/' + id + '/numero').set(numero);
-      }
-      
-      adicionarNumeroNaVaga(mesh, numero.replace("VAGA ", ""));
-      
-      if (vaga.ocupada) {
-        try {
-          const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-          vaga.carro = carro;
-        } catch (e) {
-          console.error("Erro ao carregar carro:", e);
-        }
-      }
-    } else {
-      vaga.mesh.position.x = vData.x;
-      vaga.mesh.position.y = vData.y;
-      vaga.mesh.position.z = vData.z;
-      vaga.mesh.rotation.y = vData.rotY || 0;
-      
-      const wasOccupied = vaga.ocupada;
-      vaga.ocupada = vData.ocupada;
-      vaga.carModel = vData.carModel || null;
-      vaga.numero = vData.numero || vaga.numero || null;
-	
-	// Se for vaga 14 ou 15 e estiver ocupada, força carpo.glb
-const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
-  vaga.carModel = 'carpo.glb';
-}
-
-
-      
-      if (!isEditingMode || vaga !== vagaSelecionada) {
-        if (vaga.ocupada && vaga.mesh.material) {
-          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
-        } else if (vaga.mesh.material) {
-          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
-          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
-        }
-      }
-      
-            if (vaga.ocupada && !vaga.carro) {
-        try {
-          const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-          vaga.carro = carro;
-        } catch (e) {
-          console.error("Erro ao carregar carro:", e);
-        }
-      } else if (!vaga.ocupada && vaga.carro) {
-        vaga.carro.dispose();
-        vaga.carro = null;
-      }
-      
-      if (vaga.mesh._labelTextBlock) {
-        vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ", "");
-      }
-      
-      if (!vData.numero && vaga.numero) {
-        db.ref('vagas/' + id + '/numero').set(vaga.numero);
-      }
+  // Enter key login
+  const userPassInput = document.getElementById("userPass");
+  userPassInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      login();
     }
   });
-  
-  updateUI();
 });
-
-// ===== INICIALIZAÇÃO =====
-initializeScene();
-
-engine.runRenderLoop(() => scene.render());
-
-window.addEventListener("resize", () => {
-  engine.resize();
-});
-
-canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// Toggle do painel mobile
-document.querySelectorAll('#vagasPanel .mobile-handle, #controlPanel .mobile-handle')
-  .forEach(handle => {
-    handle.addEventListener('click', () => {
-      handle.parentElement.classList.toggle('expanded');
-    });
-  });
-
-
 
 // ===== EXPOSIÇÃO DE FUNÇÕES GLOBAIS =====
 window.login = login;
+window.logout = logout;
 window.toggleTool = toggleTool;
 window.showCreationWizard = showCreationWizard;
 window.closeWizard = closeWizard;
@@ -3210,87 +3399,6 @@ window.focusOnSelected = focusOnSelected;
 window.setTopView = setTopView;
 window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
-
-
-document.addEventListener("DOMContentLoaded", function() {
-  const hamburgerBtn = document.getElementById("hamburgerBtn");
-  const controlPanel = document.getElementById("controlPanel");
-
-  if (!hamburgerBtn) {
-    console.warn("hamburgerBtn não encontrado — verifique se o HTML foi inserido dentro de #smartDashboard");
-    return;
-  }
-  if (!controlPanel) {
-    console.warn("controlPanel não encontrado — verifique se existe elemento com id='controlPanel'");
-    return;
-  }
-
-  // Toggle com classe e animação
-  hamburgerBtn.addEventListener("click", (e) => {
-    // Se painel já aberto, inicia closing animation
-    if (controlPanel.classList.contains("mobile-open")) {
-      controlPanel.classList.add("hiding");
-      setTimeout(()=> {
-        controlPanel.classList.remove("mobile-open", "showing", "hiding");
-      }, 180);
-    } else {
-      controlPanel.classList.add("mobile-open");
-      // força reflow para transição
-      void controlPanel.offsetWidth;
-      controlPanel.classList.add("showing");
-    }
-  });
-
-  // fechar ao clicar fora (apenas quando aberto)
-  document.addEventListener("click", (ev) => {
-    if (!controlPanel.classList.contains("mobile-open")) return;
-    const target = ev.target;
-    if (target === hamburgerBtn || controlPanel.contains(target)) return;
-    controlPanel.classList.add("hiding");
-    setTimeout(()=> {
-      controlPanel.classList.remove("mobile-open", "showing", "hiding");
-    }, 180);
-  });
-
-  // ESC fecha
-  document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && controlPanel.classList.contains("mobile-open")) {
-      controlPanel.classList.add("hiding");
-      setTimeout(()=> {
-        controlPanel.classList.remove("mobile-open", "showing", "hiding");
-      }, 120);
-    }
-  });
-
-  // DEBUG helper: se quiser verificar no console
-  // console.log("hamburger ready", hamburgerBtn, controlPanel);
-});
-
-// ===== RELÓGIO =====
-function atualizarRelogio() {
-  const agora = new Date();
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
-  const segundos = String(agora.getSeconds()).padStart(2, '0');
-  const dia = String(agora.getDate()).padStart(2, '0');
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  const ano = agora.getFullYear();
-
-  document.getElementById("horaAtual").textContent = `${horas}:${minutos}:${segundos}`;
-  document.getElementById("dataAtual").textContent = `${dia}/${mes}/${ano}`;
-}
-
-// Atualiza o relógio a cada segundo
-setInterval(atualizarRelogio, 1000);
-atualizarRelogio();
-
-    const userPassInput = document.getElementById("userPass");
-
-    userPassInput.addEventListener("keydown", function(event) {
-      if (event.key === "Enter") {
-        login();
-      }
-    });
 
 </script>
 </body>
