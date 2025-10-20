@@ -1239,7 +1239,7 @@
     </div>
     <div class="wizard-content">
       <div class="input-group">
-        <label class="input-label">Tipo de Criação</label>
+        <label  for="creationType" class="input-label">Tipo de Criação</label>
         <select class="wizard-select" id="creationType">
           <option value="single">Vaga Individual</option>
           <option value="row">Fileira (Horizontal)</option>
@@ -1248,15 +1248,15 @@
         </select>
       </div>
       <div class="input-group" id="quantityGroup">
-        <label class="input-label">Quantidade</label>
+        <label for="vagaQuantity" class="input-label">Quantidade</label>
         <input type="number" class="wizard-input" id="vagaQuantity" value="1" min="1" max="20">
       </div>
       <div class="input-group" id="spacingGroup">
-        <label class="input-label">Espaçamento</label>
+        <label for="vagaSpacing" class="input-label">Espaçamento</label>
         <input type="number" class="wizard-input" id="vagaSpacing" value="1" min="0.5" max="5" step="0.5">
       </div>
       <div class="input-group">
-        <label class="input-label">Orientação</label>
+        <label for="vagaOrientation" class="input-label">Orientação</label>
         <select class="wizard-select" id="vagaOrientation">
           <option value="0">Norte (0°)</option>
           <option value="90">Leste (90°)</option>
@@ -1299,19 +1299,8 @@ const firebaseConfig = {
   measurementId: "G-H52V7SLBGE"
 };
 
-let db;
-
-// Inicialização assíncrona do Firebase
-(function initFirebase() {
-  if (typeof firebase === 'undefined') {
-    setTimeout(initFirebase, 100);
-    return;
-  }
-  
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  console.log('✅ Firebase OK');
-})();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 async function obterClimaAtual() {
   const cidade = "Porto Alegre";
@@ -1645,7 +1634,7 @@ function atualizarPainelClima(tipo) {
     icon = "https://img.icons8.com/emoji/48/cloud-with-lightning-and-rain.png";
     texto = "Tempestade ⛈️";
   } else if (tipo.includes("cloud")) {
-    icon = "https://img.icons8.com/emoji/48/cloud.png";
+    icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
     texto = "Nublado ☁️";
   } else if (tipo.includes("mist") || tipo.includes("fog") || tipo.includes("haze")) {
     icon = "https://img.icons8.com/emoji/48/fog.png";
@@ -2542,13 +2531,14 @@ async function carregarCarroNormalizado(vaga, modelFile) {
   const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(CAR_BASE_URL, file, scene);
   const carroRoot = new BABYLON.TransformNode("carroRoot", scene);
   
+  // Adiciona manualmente os meshes e materiais
   container.meshes.forEach(m => {
     if (m.parent == null) m.parent = carroRoot;
+    scene.addMesh(m); // adiciona à cena sem usar addAllToScene
   });
-  
-  container.addAllToScene();
+  container.materials.forEach(mat => scene.addMaterial(mat));
+
   carroRoot.rotationQuaternion = null;
-  
   normalizarOrientacao(carroRoot);
   escalarParaVaga(carroRoot);
   carroRoot.rotation.y = vaga.mesh.rotation.y;
