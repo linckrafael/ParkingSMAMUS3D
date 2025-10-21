@@ -6,12 +6,10 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.skyMaterial.min.js"></script>
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -74,7 +72,6 @@
 .brand .clock-card #dataAtual {
   background: none !important;
   -webkit-background-clip: initial !important;
-  background-clip: border-box;
   -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
   color: #a7ffb0 !important;
   opacity: 0.9;
@@ -518,9 +515,60 @@
     .notification.warning { border-left: 4px solid #f59e0b; }
     .notification.info { border-left: 4px solid #3ef910; }
 
+/* === Painel de Clima === */
+.clima-box {
+  position: absolute;
+  top: 90px; /* abaixo do cabeçalho */
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 12px;
+  z-index: 2000;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3); 
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+}
 
+.clima-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.clima-box.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clima-texto {
+  font-weight: 500;
+  text-transform: capitalize;
+}
 
     /* ===== MOBILE OPTIMIZATIONS ===== */
+@media (max-width: 1024px) {
+  .clima-box {
+  position: absolute;
+  top: 150px; /* abaixo do cabeçalho */
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 122px;
+  z-index: 2000;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3); 
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+ }
+}
 
 @media (max-width: 1024px) {
 
@@ -1035,6 +1083,12 @@
       </div>
     </div>
   </div>
+  <!-- Painel Clima -->
+<div id="climaBox" class="clima-box hidden">
+  <img id="climaIcon" class="clima-icon" src="" alt="Clima" />
+  <span id="climaTexto" class="clima-texto">Carregando...</span>
+</div>
+
 
   <!-- Control Panel -->
   <div id="controlPanel" class="glass-panel">
@@ -1252,7 +1306,28 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+async function obterClimaAtual() {
+  const cidade = "Porto Alegre";
+  const apiKey = "57ca7352de0bf52eb9f0f5943b1cbc4a"; 
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&units=metric&lang=pt_br&appid=${apiKey}`;
 
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.weather || !data.weather[0]) {
+      console.warn("Não foi possível obter o clima atual");
+      return null;
+    }
+
+    const tipo = data.weather[0].main.toLowerCase();
+    console.log(`Clima em ${cidade}:`, tipo);
+    return tipo;
+  } catch (error) {
+    console.error("Erro ao buscar clima:", error);
+    return null;
+  }
+}
 
 // === AUTENTICAÇÃO ANÔNIMA AUTOMÁTICA PARA VIEWER ===
 firebase.auth().onAuthStateChanged(user => {
@@ -1299,7 +1374,7 @@ let isMobile = false;
 // ===== CONSTANTES =====
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
-const CAR_MODELS = ["car2.glb","car4.glb","car5.glb","car6.glb","car9.glb"];
+const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
 const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
@@ -1511,24 +1586,34 @@ function initializeScene() {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
   
-// ===== CÉU AZUL LIMPO E REALISTA =====
-const skyMaterial = new BABYLON.SkyMaterial("skyMaterial", scene);
-skyMaterial.backFaceCulling = false;
-skyMaterial.turbidity = 10;
-skyMaterial.luminance = 1;
-skyMaterial.useSunPosition = true;
-skyMaterial.sunPosition = new BABYLON.Vector3(0, 100, 0);
-skyMaterial.cameraOffset.y = 0;
-
-const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500.0 }, scene);
-skybox.material = skyMaterial;
-
+  // Skybox
+  const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
+  skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
+  const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+  skyboxMaterial.backFaceCulling = false;
+  skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
+    "https://playground.babylonjs.com/textures/skybox",
+    scene
+  );
+  skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+  skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+  skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+  skybox.material = skyboxMaterial;
   
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
     NotificationSystem.show("Modelo do estacionamento carregado", "success");
   });
 
+  aplicarClimaAutomatico(scene);
+  setInterval(() => aplicarClimaAutomatico(scene), 60 * 60 * 1000);
+  
+  const hora = new Date().getHours();
+  if (hora >= 18 || hora < 6) {
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1);
+  } else {
+    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
+  }
   
   setupInteractions();
   setupKeyboardControls();
@@ -1538,8 +1623,102 @@ skybox.material = skyMaterial;
   iniciarFirebaseSync();
 }
 
+async function aplicarClimaAutomatico(scene) {
+  const tipo = await obterClimaAtual();
+  if (!tipo) return;
+  
+  atualizarPainelClima(tipo);
 
+  scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
 
+  if (scene._rainSystem) {
+    scene._rainSystem.stop();
+    scene._rainSystem.dispose();
+    scene._rainSystem = null;
+  }
+
+  if (tipo.includes("rain")) {
+    if (!isIOS) criarChuva(scene);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.005;
+    scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
+    console.log("🌧️ Clima: Chuva");
+  } 
+  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("fog")) {
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.002;
+    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9);
+    console.log("🌫️ Clima: Neblina leve");
+  } 
+  else if (tipo.includes("clear")) {
+    scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    console.log("☀️ Clima: Céu limpo");
+  } 
+  else if (tipo.includes("storm") || tipo.includes("thunder")) {
+    if (!isIOS) criarChuva(scene);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.007;
+    scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
+    const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
+    light.intensity = 0.6;
+    scene.registerBeforeRender(() => relampago(scene, light));
+    console.log("⛈️ Clima: Tempestade");
+  } 
+  else {
+    scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    console.log("🌤️ Clima padrão: limpo");
+  }
+
+  const hora = new Date().getHours();
+  if (hora >= 18 || hora < 6) {
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.1);
+  } else {
+    scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
+  }
+}
+
+function criarChuva(scene) {
+  // Desabilita chuva no iOS para evitar crashes
+  if (isIOS) {
+    console.log("Chuva desabilitada no iOS para performance");
+    return;
+  }
+  
+  // Código da chuva aqui (se tiver)
+}
+
+function atualizarPainelClima(tipo) {
+  const climaBox = document.getElementById("climaBox");
+  const climaIcon = document.getElementById("climaIcon");
+  const climaTexto = document.getElementById("climaTexto");
+
+  if (!climaBox || !climaIcon || !climaTexto) return;
+
+  climaBox.classList.remove("hidden");
+
+  let icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
+  let texto = "Céu limpo ☀️";
+
+  if (tipo.includes("rain")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-rain.png";
+    texto = "Chuva 🌧️";
+  } else if (tipo.includes("storm") || tipo.includes("thunder")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-lightning-and-rain.png";
+    texto = "Tempestade ⛈️";
+  } else if (tipo.includes("cloud")) {
+    icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
+    texto = "Nublado ☁️";
+  } else if (tipo.includes("mist") || tipo.includes("fog") || tipo.includes("haze")) {
+    icon = "https://img.icons8.com/emoji/48/fog.png";
+    texto = "Névoa 🌫️";
+  } else if (tipo.includes("snow")) {
+    icon = "https://img.icons8.com/emoji/48/cloud-with-snow.png";
+    texto = "Neve ❄️";
+  }
+
+  climaIcon.src = icon;
+  climaTexto.textContent = texto;
+}
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
 function toggleCameraLock() {
@@ -2171,6 +2350,7 @@ function deleteVaga() {
   updateUI();
 }
 
+// ===== OPERAÇÕES EM LOTE COM OTIMIZAÇÃO PARA iOS =====
 async function ocuparTodas() {
   if (role === "viewer") {
     NotificationSystem.show("Sem permissão para ocupar vagas", "error");
@@ -2189,36 +2369,42 @@ async function ocuparTodas() {
   }
   
   let sucessos = 0;
+  const batchSize = isIOS ? 3 : 10; // Carrega menos carros por vez no iOS
   
-  for (let vaga of livres) {
-    try {
-      vaga.ocupada = true;
-      vaga.carModel = escolherCarroNormal();
-
-
-// Fixar carpo.glb nas vagas 14 e 15
-const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-if (_num === 14 || _num === 15) {
-  vaga.carModel = 'carpo.glb';
-}
-
-
-      
-      if (vaga.mesh.material) {
-        vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-        vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+  for (let i = 0; i < livres.length; i += batchSize) {
+    const batch = livres.slice(i, i + batchSize);
+    
+    await Promise.all(batch.map(async (vaga) => {
+      try {
+        vaga.ocupada = true;
+        vaga.carModel = escolherCarroNormal();
+        
+        const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+        if (_num === 14 || _num === 15) {
+          vaga.carModel = 'carpo.glb';
+        }
+        
+        if (vaga.mesh.material) {
+          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
+        }
+        
+        const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+        vaga.carro = carro;
+        
+        if (vaga.id) {
+          await atualizarFirebase(vaga, vaga.id);
+        }
+        
+        sucessos++;
+      } catch (e) {
+        console.error("Erro ao ocupar vaga:", vaga.numero, e);
       }
-      
-      const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-      vaga.carro = carro;
-      
-      if (vaga.id) {
-        await atualizarFirebase(vaga, vaga.id);
-      }
-      
-      sucessos++;
-    } catch (e) {
-      console.error("Erro ao ocupar vaga:", vaga.numero, e);
+    }));
+    
+    // Pausa entre lotes no iOS
+    if (isIOS && i + batchSize < livres.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   
