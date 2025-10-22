@@ -1025,7 +1025,7 @@
   </style>
 </head>
 <body>
-  <canvas id="renderCanvas"></canvas>
+  <canvas id="renderCanvas" tabindex="1" webkit-playsinline></canvas>
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
@@ -1431,6 +1431,40 @@ class NotificationSystem {
 // ===== INICIALIZAÇÃO DA CENA =====
 function initializeScene() {
   // Otimizações específicas para iOS
+  const engineOptions = {
+    preserveDrawingBuffer: false,
+    stencil: false,
+    antialias: false,
+    powerPreference: "low-power"
+  };
+
+  try {
+    if (engine) engine.dispose();
+    engine = new BABYLON.Engine(canvas, true, engineOptions, true);
+  } catch (err) {
+    console.warn("Falha ao criar Engine WebGL2, tentando fallback para WebGL1", err);
+    engine = new BABYLON.Engine(canvas, true, { ...engineOptions, disableWebGL2Support: true }, true);
+  }
+
+  // ===== AJUSTES ESPECÍFICOS PARA iOS =====
+  if (isIOS) {
+    console.log("iOS detectado - aplicando otimizações de memória");
+    engine.setHardwareScalingLevel(window.devicePixelRatio * 1.2);
+    engine.doNotHandleContextLost = true;
+    engine.getCaps().parallelShaderCompile = false; // evita crash por shaders simultâneos
+  }
+
+  scene = new BABYLON.Scene(engine);
+
+  if (isIOS) {
+    scene.autoClear = true;
+    scene.autoClearDepthAndStencil = true;
+    scene.blockMaterialDirtyMechanism = true;
+    scene.skipPointerMovePicking = true;
+    scene.skipFrustumClipping = true;
+    scene.useRightHandedSystem = false;
+  }
+  
   if (isIOS) {
     console.log("iOS detectado - aplicando otimizações");
     
@@ -1544,31 +1578,21 @@ function initializeScene() {
   cameraWasAttached = true;
   
   // Tratamento de contexto WebGL perdido
-  canvas.addEventListener('webglcontextlost', (event) => {
-    event.preventDefault();
-    console.log("WebGL context lost - prevenindo crash");
-    
-    if (engine) {
-      engine.stopRenderLoop();
-    }
-    
-    NotificationSystem.show("Recarregando recursos 3D...", "warning", 5000);
-  }, false);
+ canvas.addEventListener('webglcontextlost', (event) => {
+  event.preventDefault();
+  console.warn("⚠️ WebGL context lost no iOS - pausando render loop");
+  if (engine) engine.stopRenderLoop();
+  NotificationSystem.show("Memória gráfica cheia - recarregando cena...", "warning", 4000);
+});
 
-  canvas.addEventListener('webglcontextrestored', () => {
-    console.log("WebGL context restored");
-    
-    if (engine) {
-      engine.initWebGL();
-      engine.resize();
-      engine.runRenderLoop(() => {
-        if (scene) scene.render();
-      });
-    }
-    
-    NotificationSystem.show("Recursos 3D restaurados", "success");
-  }, false);
-  
+canvas.addEventListener('webglcontextrestored', () => {
+  console.log("✅ WebGL context restaurado");
+  if (engine && scene) {
+    engine.resize();
+    engine.runRenderLoop(() => scene.render());
+  }
+});
+
   // Iluminação
   const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
   hemiLight.intensity = 0.8;
