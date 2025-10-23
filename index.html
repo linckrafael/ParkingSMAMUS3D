@@ -1706,20 +1706,20 @@ function initializeScene() {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
 
-  /* Skybox
+  // Skybox
   const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
   skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
   const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
   skyboxMaterial.backFaceCulling = false;
   skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
-    "textures/sky/sky_lowres",
+    "https://playground.babylonjs.com/textures/skybox",
     scene
   );
   skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
   skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
   skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
   skybox.material = skyboxMaterial;
-  */
+  
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
     NotificationSystem.show("Modelo do estacionamento carregado", "success");
@@ -1745,6 +1745,15 @@ function initializeScene() {
 }
 
 async function aplicarClimaAutomatico(scene) {
+
+  // ⚠️ MODO DE TESTE — força um tipo de clima específico
+  // const tipo = "rain";      // 🌧️ chuva
+  // const tipo = "cloud";     // ☁️ nublado
+  // const tipo = "mist";      // 🌫️ neblina
+  // const tipo = "storm";     // ⛈️ tempestade
+  // const tipo = "snow";      // ❄️ neve
+  // const tipo = "clear";     // ☀️ céu limpo
+
   const tipo = await obterClimaAtual();
   if (!tipo) return;
   
@@ -1761,7 +1770,7 @@ async function aplicarClimaAutomatico(scene) {
   if (tipo.includes("rain")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.005;
+    scene.fogDensity = 0.002;
     scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
     console.log("🌧️ Clima: Chuva");
   } 
@@ -1778,7 +1787,7 @@ async function aplicarClimaAutomatico(scene) {
   else if (tipo.includes("storm") || tipo.includes("thunder")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.007;
+    scene.fogDensity = 0.002;
     scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
     const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
     light.intensity = 0.6;
@@ -1841,9 +1850,6 @@ function atualizarPainelClima(tipo) {
   climaTexto.textContent = texto;
 }
 
-const isLowPowerDevice = /iPhone1[2-4]|iPhone SE|iPad/i.test(navigator.userAgent);
-const fpsLimit = isLowPowerDevice ? 30 : 60;
-engine.setHardwareScalingLevel(isLowPowerDevice ? 2 : 1); // Reduz resolução em devices mais fracos
 
 // ===== RENDER LOOP SEGURO E OTIMIZADO =====
 function startRenderLoop() {
