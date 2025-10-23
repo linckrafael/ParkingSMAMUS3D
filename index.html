@@ -72,6 +72,7 @@
 .brand .clock-card #dataAtual {
   background: none !important;
   -webkit-background-clip: initial !important;
+  background-clip: border-box;
   -webkit-text-fill-color: #a7ffb0 !important; /* verde-claro visível */
   color: #a7ffb0 !important;
   opacity: 0.9;
@@ -1025,7 +1026,7 @@
   </style>
 </head>
 <body>
-  <canvas id="renderCanvas" tabindex="1" webkit-playsinline></canvas>
+  <canvas id="renderCanvas"></canvas>
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
@@ -1287,9 +1288,11 @@
 
 <script>
 
-// ===== DETECÇÃO DE PLATAFORMA E RELOAD =====
+// ===== DETECÇÃO iOS =====
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isReload = performance && performance.navigation && performance.navigation.type === 1;
+const isReload = performance.navigation.type === 1;
+
+console.log(`🔍 Plataforma: ${isIOS ? 'iOS' : 'Outro'} | Reload: ${isReload}`);
 
 // ===== CONFIGURAÇÃO E INICIALIZAÇÃO =====
 const firebaseConfig = {
@@ -1358,6 +1361,10 @@ let carroCounter = 0;
 let easterEggToggle = false;
 let vagasListener = null;
 
+// 🔹 LIMITE DE CARROS CARREGADOS (CRÍTICO PARA iOS)
+const MAX_LOADED_CARS = 10;
+let loadedCarsCount = 0;
+
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
 let isCtrlPressed = false;
@@ -1374,11 +1381,91 @@ let isMobile = false;
 // ===== CONSTANTES =====
 const PARKING_MODEL_FILE = "modelo.glb";
 const CAR_BASE_URL = "https://linckrafael.github.io/novosCarros/";
-const CAR_MODELS = ["car1.glb","car2.glb","car4.glb","car5.glb","car6.glb","car7.glb","car9.glb","car10.glb"];
+const CAR_MODELS = ["car2.glb","car4.glb","car5.glb","car6.glb","car9.glb"];
 const VAGA_LARGURA = 4.0;
 const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
 const MARGEM_ESCALA = 0.95;
+
+// ===== 🚨 SISTEMA DE LIMPEZA MELHORADO =====
+function cleanupResources() {
+  console.log("🧹 Iniciando limpeza completa de recursos...");
+  
+  try {
+    // 1. Para todos os intervalos
+    Object.keys(intervals).forEach(key => {
+      if (intervals[key]) {
+        clearInterval(intervals[key]);
+        intervals[key] = null;
+      }
+    });
+    
+    // 2. Remove Firebase listener
+    if (vagasListener && db) {
+      db.ref('vagas').off('value', vagasListener);
+      vagasListener = null;
+    }
+    
+    // 3. Limpa carros e vagas
+    vagas.forEach(vaga => {
+      try {
+        if (vaga.carro) {
+          vaga.carro.dispose();
+          vaga.carro = null;
+          loadedCarsCount--;
+        }
+        if (vaga.mesh) {
+          if (vaga.mesh._labelPlane) vaga.mesh._labelPlane.dispose();
+          if (vaga.mesh._labelADT) vaga.mesh._labelADT.dispose();
+          vaga.mesh.dispose();
+        }
+      } catch (e) {
+        console.error("Erro ao limpar vaga:", e);
+      }
+    });
+    vagas = [];
+    vagaSelecionada = null;
+    loadedCarsCount = 0;
+    
+    // 4. Para render loop
+    if (engine) {
+      engine.stopRenderLoop();
+    }
+    
+    // 5. Limpa cena
+    if (scene) {
+      scene.dispose();
+      scene = null;
+    }
+    
+    // 6. Limpa engine
+    if (engine) {
+      engine.dispose();
+      engine = null;
+    }
+    
+    // 7. Remove event listeners
+    Object.keys(eventListeners).forEach(key => {
+      if (eventListeners[key]) {
+        const [target, event, handler] = eventListeners[key];
+        if (target && handler) {
+          target.removeEventListener(event, handler);
+        }
+        eventListeners[key] = null;
+      }
+    });
+    
+    console.log("✅ Limpeza completa finalizada");
+  } catch (e) {
+    console.error("Erro durante limpeza:", e);
+  }
+}
+
+// ===== FUNÇÃO HELPER PARA ADICIONAR EVENT LISTENERS =====
+function addManagedEventListener(target, event, handler, key) {
+  target.addEventListener(event, handler);
+  eventListeners[key] = [target, event, handler];
+}
 
 // ===== SUPORTE PARA PASSIVE LISTENERS =====
 const supportsPassive = (() => {
@@ -1430,41 +1517,39 @@ class NotificationSystem {
 
 // ===== INICIALIZAÇÃO DA CENA =====
 function initializeScene() {
-  // Otimizações específicas para iOS
+    // Configuração otimizada para iOS
   const engineOptions = {
     preserveDrawingBuffer: false,
     stencil: false,
-    antialias: false,
-    powerPreference: "low-power"
+    disableWebGL2Support: false,
+    powerPreference: isIOS ? "low-power" : "high-performance",
+    antialias: !isIOS, // Desabilita antialiasing no iOS para performance
+    failIfMajorPerformanceCaveat: false
   };
-
-  try {
-    if (engine) engine.dispose();
-    engine = new BABYLON.Engine(canvas, true, engineOptions, true);
-  } catch (err) {
-    console.warn("Falha ao criar Engine WebGL2, tentando fallback para WebGL1", err);
-    engine = new BABYLON.Engine(canvas, true, { ...engineOptions, disableWebGL2Support: true }, true);
-  }
-
-  // ===== AJUSTES ESPECÍFICOS PARA iOS =====
+  
+  engine = new BABYLON.Engine(canvas, true, engineOptions);
+  
+  // Limita FPS no iOS
   if (isIOS) {
-    console.log("iOS detectado - aplicando otimizações de memória");
-    engine.setHardwareScalingLevel(window.devicePixelRatio * 1.2);
-    engine.doNotHandleContextLost = true;
-    engine.getCaps().parallelShaderCompile = false; // evita crash por shaders simultâneos
-  }
-
-  scene = new BABYLON.Scene(engine);
-
-  if (isIOS) {
-    scene.autoClear = true;
-    scene.autoClearDepthAndStencil = true;
-    scene.blockMaterialDirtyMechanism = true;
-    scene.skipPointerMovePicking = true;
-    scene.skipFrustumClipping = true;
-    scene.useRightHandedSystem = false;
+    engine.setHardwareScalingLevel(1.5); // Reduz resolução no iOS
   }
   
+  scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color3(0.02, 0.02, 0.02);
+  
+  // Desabilita áudio no iOS (fonte comum de crashes)
+  if (isIOS && BABYLON.Engine.audioEngine) {
+    BABYLON.Engine.audioEngine.dispose();
+    BABYLON.Engine.audioEngine = null;
+  }
+  
+  // Otimizações de performance
+  scene.autoClear = false;
+  scene.autoClearDepthAndStencil = false;
+  scene.blockMaterialDirtyMechanism = true;
+
+
+  // Otimizações específicas para iOS
   if (isIOS) {
     console.log("iOS detectado - aplicando otimizações");
     
@@ -1578,21 +1663,31 @@ function initializeScene() {
   cameraWasAttached = true;
   
   // Tratamento de contexto WebGL perdido
- canvas.addEventListener('webglcontextlost', (event) => {
-  event.preventDefault();
-  console.warn("⚠️ WebGL context lost no iOS - pausando render loop");
-  if (engine) engine.stopRenderLoop();
-  NotificationSystem.show("Memória gráfica cheia - recarregando cena...", "warning", 4000);
-});
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    console.log("WebGL context lost - prevenindo crash");
+    
+    if (engine) {
+      engine.stopRenderLoop();
+    }
+    
+    NotificationSystem.show("Recarregando recursos 3D...", "warning", 5000);
+  }, false);
 
-canvas.addEventListener('webglcontextrestored', () => {
-  console.log("✅ WebGL context restaurado");
-  if (engine && scene) {
-    engine.resize();
-    engine.runRenderLoop(() => scene.render());
-  }
-});
-
+  canvas.addEventListener('webglcontextrestored', () => {
+    console.log("WebGL context restored");
+    
+    if (engine) {
+      engine.initWebGL();
+      engine.resize();
+      engine.runRenderLoop(() => {
+        if (scene) scene.render();
+      });
+    }
+    
+    NotificationSystem.show("Recursos 3D restaurados", "success");
+  }, false);
+  
   // Iluminação
   const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
   hemiLight.intensity = 0.8;
@@ -1609,7 +1704,7 @@ canvas.addEventListener('webglcontextrestored', () => {
   groundMat.diffuseColor = new BABYLON.Color3(0.1, 0.15, 0.2);
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
-  
+
   // Skybox
   const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
   skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
@@ -1642,6 +1737,7 @@ canvas.addEventListener('webglcontextrestored', () => {
   setupInteractions();
   setupKeyboardControls();
   if (!isMobile) setupScrollBlocking();
+
   
   // Iniciar Firebase sync
   iniciarFirebaseSync();
@@ -1742,6 +1838,61 @@ function atualizarPainelClima(tipo) {
 
   climaIcon.src = icon;
   climaTexto.textContent = texto;
+}
+
+// ===== RENDER LOOP SEGURO =====
+function startRenderLoop() {
+  if (!engine || engine.isDisposed) return;
+  
+  engine.runRenderLoop(() => {
+    try {
+      if (scene && !scene.isDisposed) {
+        scene.render();
+      }
+    } catch (e) {
+      console.error("Erro no render loop:", e);
+      engine.stopRenderLoop();
+    }
+  });
+}
+
+// ===== CARREGAMENTO DE CARROS COM LIMITE =====
+async function loadCarForVaga(vaga) {
+  // Limita número de carros carregados simultaneamente (iOS)
+  if (isIOS && loadedCarsCount >= MAX_LOADED_CARS) {
+    console.warn(`Limite de carros atingido (${MAX_LOADED_CARS}). Não carregando mais.`);
+    return null;
+  }
+  
+  if (vaga.carro) {
+    vaga.carro.dispose();
+    vaga.carro = null;
+    loadedCarsCount--;
+  }
+  
+  try {
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/", "car.glb", scene);
+    
+    if (!result || !result.meshes || result.meshes.length === 0) {
+      throw new Error("Modelo de carro não carregado");
+    }
+    
+    const carRoot = result.meshes[0];
+    carRoot.position = vaga.mesh.position.clone();
+    carRoot.position.y += 0.5;
+    carRoot.rotation.y = vaga.mesh.rotation.y;
+    carRoot.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
+    
+    vaga.carro = carRoot;
+    loadedCarsCount++;
+    
+    console.log(`✅ Carro carregado. Total: ${loadedCarsCount}/${MAX_LOADED_CARS}`);
+    return carRoot;
+    
+  } catch (e) {
+    console.error("Erro ao carregar carro:", e);
+    return null;
+  }
 }
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
@@ -2750,6 +2901,47 @@ function setupInteractions() {
   });
 }
 
+// ===== MONITORAMENTO DE MEMÓRIA (iOS) =====
+if (isIOS && 'performance' in window && 'memory' in performance) {
+  intervals.memory = setInterval(() => {
+    try {
+      const memInfo = performance.memory;
+      const usagePercent = memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit;
+      
+      if (usagePercent > 0.85) {
+        console.warn(`⚠️ Memória alta: ${(usagePercent * 100).toFixed(1)}%`);
+        
+        // Limpa cache de texturas
+        if (scene && !scene.isDisposed) {
+          scene.cleanCachedTextureBuffer();
+        }
+        
+        // Remove carros distantes
+        if (camera && loadedCarsCount > 5) {
+          const cameraPos = camera.position;
+          vagas
+            .filter(v => v.carro)
+            .sort((a, b) => {
+              const distA = BABYLON.Vector3.Distance(a.mesh.position, cameraPos);
+              const distB = BABYLON.Vector3.Distance(b.mesh.position, cameraPos);
+              return distB - distA;
+            })
+            .slice(0, 2)
+            .forEach(v => {
+              if (v.carro) {
+                v.carro.dispose();
+                v.carro = null;
+                loadedCarsCount--;
+              }
+            });
+        }
+      }
+    } catch (e) {
+      console.error("Erro no monitoramento de memória:", e);
+    }
+  }, 10000); // Check a cada 10 segundos
+}
+
 // ===== SISTEMA DE AUTENTICAÇÃO =====
 const ROLE_CREDENTIALS = {
   viewer:  { email: "viewer@smamus3d.com" },
@@ -2878,6 +3070,7 @@ function updateUIAfterLogin(role) {
 
   console.log(`Interface ajustada para role: ${role}`);
 }
+
 
 function logout() {
   firebase.auth().signOut().then(() => {
