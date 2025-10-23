@@ -519,7 +519,7 @@
 /* === Painel de Clima === */
 .clima-box {
   position: absolute;
-  top: 90px; /* abaixo do cabeçalho */
+  top: 110px; /* abaixo do cabeçalho */
   left: 20px;
   display: flex;
   align-items: center;
@@ -2545,46 +2545,80 @@ async function ocuparTodas() {
   }
   
   let sucessos = 0;
-  const batchSize = isIOS ? 3 : 10; // Carrega menos carros por vez no iOS
   
-  for (let i = 0; i < livres.length; i += batchSize) {
-    const batch = livres.slice(i, i + batchSize);
-    
-    await Promise.all(batch.map(async (vaga) => {
-      try {
-        vaga.ocupada = true;
-        vaga.carModel = escolherCarroNormal();
-        
-        const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
-        if (_num === 14 || _num === 15) {
-          vaga.carModel = 'carpo.glb';
-        }
-        
-        if (vaga.mesh.material) {
-          vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
-          vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
-        }
-        
-        const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-        vaga.carro = carro;
-        
-        if (vaga.id) {
-          await atualizarFirebase(vaga, vaga.id);
-        }
-        
-        sucessos++;
-      } catch (e) {
-        console.error("Erro ao ocupar vaga:", vaga.numero, e);
+  for (let vaga of livres) {
+    try {
+      vaga.ocupada = true;
+      vaga.carModel = escolherCarroNormal();
+
+
+// Fixar carpo.glb nas vagas 14 e 15
+const _num = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
+if (_num === 14 || _num === 15) {
+  vaga.carModel = 'carpo.glb';
+}
+
+
+      
+      if (vaga.mesh.material) {
+        vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+        vaga.mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
       }
-    }));
-    
-    // Pausa entre lotes no iOS
-    if (isIOS && i + batchSize < livres.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+      vaga.carro = carro;
+      
+      if (vaga.id) {
+        await atualizarFirebase(vaga, vaga.id);
+      }
+      
+      sucessos++;
+    } catch (e) {
+      console.error("Erro ao ocupar vaga:", vaga.numero, e);
     }
   }
   
   NotificationSystem.show(`${sucessos} vagas ocupadas com sucesso!`, "success");
+  updateUI();
+}
+
+async function liberarTodas() {
+  if (role === "viewer") {
+    NotificationSystem.show("Sem permissão para liberar vagas", "error");
+    return;
+  }
+  
+  const ocupadas = vagas.filter(v => v.ocupada);
+  
+  if (ocupadas.length === 0) {
+    NotificationSystem.show("Não há vagas ocupadas para liberar", "warning");
+    return;
+  }
+  
+  if (!confirm(`Tem certeza que deseja liberar todas as ${ocupadas.length} vagas ocupadas?`)) {
+    return;
+  }
+  
+  for (let vaga of ocupadas) {
+    vaga.ocupada = false;
+    vaga.carModel = null;
+    
+    if (vaga.mesh.material) {
+      vaga.mesh.material.diffuseColor = new BABYLON.Color3(0, 0.8, 0.3);
+      vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
+    }
+    
+    if (vaga.carro) {
+      vaga.carro.dispose();
+      vaga.carro = null;
+    }
+    
+    if (vaga.id) {
+      await atualizarFirebase(vaga, vaga.id);
+    }
+  }
+  
+  NotificationSystem.show(`${ocupadas.length} vagas liberadas`, "success");
   updateUI();
 }
 
