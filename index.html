@@ -6,6 +6,7 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.skyMaterial.min.js"></script>
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -1690,11 +1691,9 @@ function initializeScene() {
   }, false);
   
   // Iluminação
-  const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
-  hemiLight.intensity = 0.8;
+  let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+  hemiLight.intensity = 1.8;
   
-  const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -1, -1), scene);
-  dirLight.intensity = 0.5;
   
   // Chão
   const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 }, scene);
@@ -1706,19 +1705,19 @@ function initializeScene() {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
 
-  // Skybox
-  const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
-  skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
-  const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMaterial.backFaceCulling = false;
-  skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
-    "https://playground.babylonjs.com/textures/skybox",
-    scene
-  );
-  skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-  skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-  skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-  skybox.material = skyboxMaterial;
+// ===== CÉU AZUL LIMPO E REALISTA =====
+const skyMaterial = new BABYLON.SkyMaterial("skyMaterial", scene);
+skyMaterial.backFaceCulling = false;
+skyMaterial.turbidity = 2;
+skyMaterial.luminance = 1;
+skyMaterial.useSunPosition = true;
+skyMaterial.sunPosition = new BABYLON.Vector3(0, 30, 0);
+skyMaterial.cameraOffset.y = 0;
+
+const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500.0 }, scene);
+skybox.material = skyMaterial;
+
+
   
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
@@ -1770,29 +1769,32 @@ async function aplicarClimaAutomatico(scene) {
   if (tipo.includes("rain")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.002;
-    scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
+    scene.fogDensity = 0.0013;
+    scene.fogColor = new BABYLON.Color3(0.3, 0.3, 0.9);
     console.log("🌧️ Clima: Chuva");
+      let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1;
   } 
-  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("fog")) {
+  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("snow") || tipo.includes("fog")) {
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.002;
-    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9);
-    console.log("🌫️ Clima: Neblina leve");
+    scene.fogDensity = 0.0015;
+    scene.fogColor = new BABYLON.Color3(0.8, 0.8, 0.9);
+    console.log("🌫️ Clima: cloud, mist, snow and fog");
+  let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1.2;
   } 
   else if (tipo.includes("clear")) {
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
     console.log("☀️ Clima: Céu limpo");
   } 
-  else if (tipo.includes("storm") || tipo.includes("thunder")) {
+  else if (tipo.includes("storm")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.002;
-    scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
-    const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
-    light.intensity = 0.6;
-    scene.registerBeforeRender(() => relampago(scene, light));
+    scene.fogDensity = 0.003;
+    scene.fogColor = new BABYLON.Color3(0, 0, 0.3);
     console.log("⛈️ Clima: Tempestade");
+let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1.6;
   } 
   else {
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
@@ -1806,15 +1808,12 @@ async function aplicarClimaAutomatico(scene) {
     scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
   }
 }
-
 function criarChuva(scene) {
   // Desabilita chuva no iOS para evitar crashes
   if (isIOS) {
     console.log("Chuva desabilitada no iOS para performance");
     return;
   }
-  
-  // Código da chuva aqui (se tiver)
 }
 
 function atualizarPainelClima(tipo) {
@@ -1830,19 +1829,19 @@ function atualizarPainelClima(tipo) {
   let texto = "Céu limpo ☀️";
 
   if (tipo.includes("rain")) {
-    icon = "https://img.icons8.com/emoji/48/cloud-with-rain.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/414/414974.png";
     texto = "Chuva 🌧️";
-  } else if (tipo.includes("storm") || tipo.includes("thunder")) {
+  } else if (tipo.includes("storm")) {
     icon = "https://img.icons8.com/emoji/48/cloud-with-lightning-and-rain.png";
     texto = "Tempestade ⛈️";
   } else if (tipo.includes("cloud")) {
-    icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/1163/1163624.png";
     texto = "Nublado ☁️";
   } else if (tipo.includes("mist") || tipo.includes("fog") || tipo.includes("haze")) {
     icon = "https://img.icons8.com/emoji/48/fog.png";
     texto = "Névoa 🌫️";
   } else if (tipo.includes("snow")) {
-    icon = "https://img.icons8.com/emoji/48/cloud-with-snow.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/642/642102.png";
     texto = "Neve ❄️";
   }
 
