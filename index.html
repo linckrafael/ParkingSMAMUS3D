@@ -1323,18 +1323,21 @@ const DeviceDetector = {
 const PerformanceConfig = {
   low: { 
     name: 'ECONOMIA',
-    renderScale: 0.6,  // 60% resolução (reduzido de 0.7)
+    renderScale: 0.5,  // 50% resolução - REDUZIDO AINDA MAIS
     antialiasing: false,
     shadows: false,
-    fps: 25,  // 25 FPS (reduzido de 30)
-    maxCarsPerFrame: 2,  // Carrega apenas 2 carros por frame
-    carDelay: 200,  // 200ms entre cada carro
-    simplifiedRatio: 0.9,  // 90% boxes (aumentado de 0.7)
-    lodUpdateInterval: 5000,  // Atualiza LOD a cada 5s (era 2s)
-    memoryThreshold: 0.7,
+    fps: 20,  // 20 FPS - REDUZIDO
+    maxCarsPerFrame: 1,  // Carrega apenas 1 carro por vez
+    carDelay: 300,  // 300ms entre cada carro
+    simplifiedRatio: 1.0,  // 100% boxes - APENAS BOXES
+    lodUpdateInterval: 99999,  // NUNCA atualiza
+    memoryThreshold: 0.6,
     aggressiveCleanup: true,
     disableParticles: true,
-    disablePostProcess: true
+    disablePostProcess: true,
+    freezeOnZoom: true,  // CONGELA durante zoom
+    maxVisibleDistance: 100,  // Só renderiza até 100m
+    cullAggressively: true  // Culling agressivo
   },
   medium: { 
     name: 'BALANCEADO',
@@ -1424,7 +1427,12 @@ async function loadCar3D(vaga, scene) {
 }
 
 async function loadCarWithLOD(vaga, scene, lod) {
-  if (lod === 'simple' || deviceTier === 'low') {
+  // Tier LOW: SEMPRE box, NUNCA 3D
+  if (deviceTier === 'low') {
+    return await loadCarSimple(vaga, scene);
+  }
+  
+  if (lod === 'simple') {
     return await loadCarSimple(vaga, scene);
   } else {
     return await loadCar3D(vaga, scene);
@@ -1464,6 +1472,12 @@ function queueCarLoad(vaga, scene, cameraPos) {
 
 let lodUpdateInterval = null;
 function startLODManager() {
+  // Tier LOW: LOD Manager COMPLETAMENTE DESABILITADO
+  if (deviceTier === 'low') {
+    console.log("🚫 LOD Manager: DESABILITADO permanentemente (tier LOW)");
+    return;
+  }
+  
   if (lodUpdateInterval) clearInterval(lodUpdateInterval);
   
   lodUpdateInterval = setInterval(() => {
@@ -1477,7 +1491,7 @@ function startLODManager() {
         const currentLOD = vaga.carro._lodLevel || 'simple';
         const desiredLOD = getCarLOD(vaga, cameraPos);
         
-        if (currentLOD !== desiredLOD && deviceTier !== 'low') {
+        if (currentLOD !== desiredLOD) {
           vaga.carro.dispose();
           queueCarLoad(vaga, window.scene, cameraPos);
           updateCount++;
@@ -1545,10 +1559,21 @@ function createOptimizedRenderLoop(engine, scene) {
   if (config.fps < 60) {
     const targetFrameTime = 1000 / config.fps;
     let lastRenderTime = 0;
+    let cullCounter = 0;
     
     engine.runRenderLoop(() => {
       const now = Date.now();
       if (now - lastRenderTime >= targetFrameTime) {
+        // Durante movimento, reduz ainda mais FPS
+        if (isMovingCamera && deviceTier === 'low') {
+          if ((now - lastRenderTime) < targetFrameTime * 3) return;
+        }
+        
+        // Culling a cada 10 frames
+        if (cullCounter++ % 10 === 0 && window.camera) {
+          applyCulling(scene, window.camera);
+        }
+        
         scene.render();
         lastRenderTime = now;
         fpsCounter++;
@@ -1572,18 +1597,94 @@ function createOptimizedRenderLoop(engine, scene) {
   }
 }
 
-function waitForFirebase(callback) {
+
+
+// ===== SISTEMA DE CONGELAMENTO =====
+let isMovingCamera = false;
+let moveTimeout = null;
+let frozenFrame = null;
+let lastCameraPosition = null;
+
+function freezeRender() {
+  if (deviceTier !== 'low') return;
+  
+  isMovingCamera = true;
+  console.log("❄️ Congelando renderização...");
+}
+
+function unfreezeRender() {
+  if (deviceTier !== 'low') return;
+  
+  isMovingCamera = false;
+  console.log("🔥 Descongelando renderização...");
+}
+
+function onCameraMove(camera) {
+  if (deviceTier !== 'low') return;
+  
+  const currentPos = camera.position.clone();
+  
+  if (lastCameraPosition) {
+    const distance = BABYLON.Vector3.Distance(currentPos, lastCameraPosition);
+    
+    // Se movimento significativo (zoom)
+    if (distance > 1) {
+      freezeRender();
+      
+      if (moveTimeout) clearTimeout(moveTimeout);
+      moveTimeout = setTimeout(() => {
+        unfreezeRender();
+      }, 500);  // Descongela 500ms após parar
+    }
+  }
+  
+  lastCameraPosition = currentPos;
+}
+
+// Culling agressivo - não renderiza o que está longe
+function applyCulling(scene, camera) {
+  if (deviceTier !== 'low' || !config.cullAggressively) return;
+  
+  const cameraPos = camera.position;
+  const maxDist = config.maxVisibleDistance;
+  
+  scene.meshes.forEach(mesh => {
+    if (mesh.name && mesh.name.startsWith('car_')) {
+      const distance = BABYLON.Vector3.Distance(mesh.position, cameraPos);
+      mesh.isVisible = distance < maxDist;
+    }
+  });
+}
+
+
+function waitForFirebase(callback, attempts = 0) {
+  const maxAttempts = 100; // 10 segundos (100 * 100ms)
+  
   if (typeof firebase !== 'undefined') {
-    console.log("✅ Firebase pronto");
-    callback();
+    console.log("✅ Firebase carregado!");
+    callback(true);
+  } else if (attempts < maxAttempts) {
+    console.log(`⏳ Aguardando Firebase... (${attempts + 1}/${maxAttempts})`);
+    setTimeout(() => waitForFirebase(callback, attempts + 1), 100);
   } else {
-    setTimeout(() => waitForFirebase(callback), 100);
+    console.error("❌ Firebase não carregou após 10 segundos");
+    alert("⚠️ Firebase não carregou. A aplicação iniciará em MODO OFFLINE (sem sincronização).\n\nVerifique sua conexão e recarregue a página.");
+    callback(false); // Inicia sem Firebase
   }
 }
 
-function initializeApp() {
+function initializeApp(hasFirebase) {
   console.log("🎮 Iniciando app...");
   
+  if (!hasFirebase) {
+    console.warn("⚠️ MODO OFFLINE - Firebase não disponível");
+    console.warn("⚠️ Funcionalidades limitadas:");
+    console.warn("   - Não será possível salvar vagas");
+    console.warn("   - Não será possível sincronizar dados");
+    console.warn("   - Sistema funcionará apenas localmente");
+  }
+  
+
 
 
 // ===== DETECÇÃO iOS =====
@@ -1907,6 +2008,17 @@ function initializeScene() {
     );
 
     camera.attachControl(canvas, true);
+
+
+  // Observer de movimento da câmera
+  if (config.freezeOnZoom) {
+    camera.onViewMatrixChangedObservable.add(() => {
+      onCameraMove(camera);
+    });
+    console.log("👁️ Observer de câmera ativo");
+  }
+  
+
     camera.pinchToPanMaxDistance = 50;
     camera.panningSensibility = 8;
     camera.angularSensibilityX = 3000;
@@ -1969,6 +2081,17 @@ function initializeScene() {
   }
   
   camera.attachControl(canvas, true);
+
+
+  // Observer de movimento da câmera
+  if (config.freezeOnZoom) {
+    camera.onViewMatrixChangedObservable.add(() => {
+      onCameraMove(camera);
+    });
+    console.log("👁️ Observer de câmera ativo");
+  }
+  
+
   cameraWasAttached = true;
   
   // Tratamento de contexto WebGL perdido
@@ -2230,6 +2353,17 @@ function toggleCameraLock() {
   if (isCameraLocked) {
     isCameraLocked = false;
     camera.attachControl(canvas, true);
+
+
+  // Observer de movimento da câmera
+  if (config.freezeOnZoom) {
+    camera.onViewMatrixChangedObservable.add(() => {
+      onCameraMove(camera);
+    });
+    console.log("👁️ Observer de câmera ativo");
+  }
+  
+
     cameraWasAttached = true;
     
     lockBtn.className = 'unlocked';
@@ -2345,6 +2479,17 @@ function setupKeyboardControls() {
         isCtrlPressed = false;
         if (!isDragging && !isCameraLocked && camera.inputs) {
           camera.attachControl(canvas, true);
+
+
+  // Observer de movimento da câmera
+  if (config.freezeOnZoom) {
+    camera.onViewMatrixChangedObservable.add(() => {
+      onCameraMove(camera);
+    });
+    console.log("👁️ Observer de câmera ativo");
+  }
+  
+
           cameraWasAttached = true;
           canvas.classList.remove('camera-locked');
         }
@@ -2508,6 +2653,17 @@ function exitEditMode() {
   
   if (!isCtrlPressed && !cameraWasAttached && !isCameraLocked && camera.inputs) {
     camera.attachControl(canvas, true);
+
+
+  // Observer de movimento da câmera
+  if (config.freezeOnZoom) {
+    camera.onViewMatrixChangedObservable.add(() => {
+      onCameraMove(camera);
+    });
+    console.log("👁️ Observer de câmera ativo");
+  }
+  
+
     cameraWasAttached = true;
     canvas.classList.remove('camera-locked');
   }
