@@ -1024,7 +1024,7 @@
 }
 
   
-    /* ===== OTIMIZAÇÕES POR TIER ===== */
+    /* OTIMIZAÇÕES */
     .tier-high .glass-panel { background: rgba(0, 68, 5, 0.85) !important; backdrop-filter: blur(30px) !important; -webkit-backdrop-filter: blur(30px) !important; }
     .tier-medium .glass-panel { background: rgba(0, 68, 5, 0.9) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; }
     .tier-low .glass-panel { background: rgba(0, 68, 5, 0.95) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
@@ -1038,11 +1038,7 @@
 <body>
   <canvas id="renderCanvas"></canvas>
 
-
-<div id="performanceBadge">
-  <span id="tierLabel">CARREGANDO...</span> | 
-  <span id="fpsCounter">-- FPS</span>
-</div>
+<div id="performanceBadge"><span id="tierLabel">CARREGANDO...</span> | <span id="fpsCounter">-- FPS</span></div>
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
@@ -1304,13 +1300,12 @@
 
 <script>
 
-// ===== AGUARDA FIREBASE CARREGAR =====
-console.log("🚀 Aguardando Firebase carregar...");
+// ===== CONFIGURAÇÃO ULTRA CONSERVADORA =====
+console.log("🚀 Modo Ultra Conservador - iPhone 13 Pro");
 
-// Detecta dispositivo ANTES (não precisa do Firebase)
 const DeviceDetector = {
   isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-  getIOSVersion: function() {
+  getIOSVersion: () => {
     const match = navigator.userAgent.match(/OS (\d+)_/);
     return match ? parseInt(match[1]) : 0;
   },
@@ -1319,7 +1314,6 @@ const DeviceDetector = {
     const memory = navigator.deviceMemory || 4;
     const cores = navigator.hardwareConcurrency || 4;
     const iosVersion = this.getIOSVersion();
-    console.log(`📱 Device: RAM=${memory}GB, Cores=${cores}, iOS=${iosVersion}`);
     if (memory < 4 || cores < 6 || iosVersion < 16) return 'low';
     else if (memory < 6 || cores < 8 || iosVersion < 17) return 'medium';
     else return 'high';
@@ -1327,138 +1321,231 @@ const DeviceDetector = {
 };
 
 const PerformanceConfig = {
-  low: { name: 'ECONOMIA', renderScale: 0.7, antialiasing: false, shadows: false, fps: 30, lodDistances: { high: 15, medium: 30, low: 50 }, simplifiedRatio: 0.7, memoryThreshold: 0.75, aggressiveCleanup: true },
-  medium: { name: 'BALANCEADO', renderScale: 0.85, antialiasing: true, shadows: false, fps: 45, lodDistances: { high: 25, medium: 50, low: 80 }, simplifiedRatio: 0.4, memoryThreshold: 0.85, aggressiveCleanup: false },
-  high: { name: 'MÁXIMA QUALIDADE', renderScale: 1.0, antialiasing: true, shadows: true, fps: 60, lodDistances: { high: 40, medium: 80, low: 120 }, simplifiedRatio: 0, memoryThreshold: 0.9, aggressiveCleanup: false }
+  low: { 
+    name: 'ECONOMIA',
+    renderScale: 0.6,  // 60% resolução (reduzido de 0.7)
+    antialiasing: false,
+    shadows: false,
+    fps: 25,  // 25 FPS (reduzido de 30)
+    maxCarsPerFrame: 2,  // Carrega apenas 2 carros por frame
+    carDelay: 200,  // 200ms entre cada carro
+    simplifiedRatio: 0.9,  // 90% boxes (aumentado de 0.7)
+    lodUpdateInterval: 5000,  // Atualiza LOD a cada 5s (era 2s)
+    memoryThreshold: 0.7,
+    aggressiveCleanup: true,
+    disableParticles: true,
+    disablePostProcess: true
+  },
+  medium: { 
+    name: 'BALANCEADO',
+    renderScale: 0.85,
+    antialiasing: true,
+    shadows: false,
+    fps: 45,
+    maxCarsPerFrame: 5,
+    carDelay: 100,
+    simplifiedRatio: 0.5,
+    lodUpdateInterval: 3000,
+    memoryThreshold: 0.85,
+    aggressiveCleanup: false
+  },
+  high: { 
+    name: 'MÁXIMA',
+    renderScale: 1.0,
+    antialiasing: true,
+    shadows: true,
+    fps: 60,
+    maxCarsPerFrame: 10,
+    carDelay: 50,
+    simplifiedRatio: 0,
+    lodUpdateInterval: 2000,
+    memoryThreshold: 0.9,
+    aggressiveCleanup: false
+  }
 };
 
 const deviceTier = DeviceDetector.getDeviceTier();
 const config = PerformanceConfig[deviceTier];
 console.log(`🎯 TIER: ${deviceTier.toUpperCase()}`);
+console.log(`⚙️ Configuração:`, config);
 
 document.body.classList.add(`tier-${deviceTier}`);
 
-// Funções LOD
+// Carregamento gradual de carros
+let carLoadQueue = [];
+let isLoadingCars = false;
+
 function getCarLOD(vaga, cameraPos) {
   if (!vaga.mesh || !cameraPos) return 'simple';
   const distance = BABYLON.Vector3.Distance(vaga.mesh.position, cameraPos);
-  const lodDist = config.lodDistances;
+  
+  // Tier LOW: Quase tudo boxes
   if (deviceTier === 'low') {
-    if (distance < lodDist.high) return Math.random() > config.simplifiedRatio ? 'high' : 'simple';
-    else return 'simple';
+    return distance < 10 ? (Math.random() > config.simplifiedRatio ? 'high' : 'simple') : 'simple';
   }
+  
   if (deviceTier === 'medium') {
-    if (distance < lodDist.high) return 'high';
-    else if (distance < lodDist.medium) return Math.random() > config.simplifiedRatio ? 'medium' : 'simple';
-    else return 'simple';
+    if (distance < 25) return 'high';
+    else return Math.random() > config.simplifiedRatio ? 'medium' : 'simple';
   }
-  if (distance < lodDist.high) return 'high';
-  else if (distance < lodDist.medium) return 'medium';
-  else return 'low';
+  
+  if (distance < 40) return 'high';
+  else if (distance < 80) return 'medium';
+  else return 'simple';
+}
+
+async function loadCarSimple(vaga, scene) {
+  const carMesh = BABYLON.MeshBuilder.CreateBox("car_" + vaga.id, {width: 1.8, height: 1.2, depth: 4}, scene);
+  const carMat = new BABYLON.StandardMaterial("carMat_" + vaga.id, scene);
+  carMat.diffuseColor = BABYLON.Color3.Random();
+  carMat.specularColor = new BABYLON.Color3(0, 0, 0);
+  carMesh.material = carMat;
+  carMesh.position = vaga.mesh.position.clone();
+  carMesh.position.y += 0.6;
+  carMesh.rotation = vaga.mesh.rotation.clone();
+  carMesh._lodLevel = 'simple';
+  return carMesh;
+}
+
+async function loadCar3D(vaga, scene) {
+  try {
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/car.glb", scene);
+    const carMesh = result.meshes[0];
+    carMesh.scaling = new BABYLON.Vector3(0.015, 0.015, 0.015);
+    carMesh.position = vaga.mesh.position.clone();
+    carMesh.position.y += 0.5;
+    carMesh.rotation = vaga.mesh.rotation.clone();
+    carMesh._lodLevel = 'high';
+    return carMesh;
+  } catch (e) {
+    console.warn("Erro ao carregar 3D, usando box:", e);
+    return await loadCarSimple(vaga, scene);
+  }
 }
 
 async function loadCarWithLOD(vaga, scene, lod) {
-  try {
-    let carMesh;
-    if (lod === 'simple') {
-      carMesh = BABYLON.MeshBuilder.CreateBox("car_" + vaga.id, {width: 1.8, height: 1.2, depth: 4}, scene);
-      const carMat = new BABYLON.StandardMaterial("carMat_" + vaga.id, scene);
-      carMat.diffuseColor = BABYLON.Color3.Random();
-      carMat.specularColor = new BABYLON.Color3(0, 0, 0);
-      carMesh.material = carMat;
-      carMesh.position = vaga.mesh.position.clone();
-      carMesh.position.y += 0.6;
-      carMesh.rotation = vaga.mesh.rotation.clone();
-    } else {
-      const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/car.glb", scene);
-      carMesh = result.meshes[0];
-      carMesh.scaling = new BABYLON.Vector3(0.015, 0.015, 0.015);
-      carMesh.position = vaga.mesh.position.clone();
-      carMesh.position.y += 0.5;
-      carMesh.rotation = vaga.mesh.rotation.clone();
-      if (lod !== 'high') {
-        carMesh.getChildMeshes().forEach(mesh => {
-          if (mesh.material && mesh.material.diffuseTexture) {
-            mesh.material.diffuseTexture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
-          }
-        });
-      }
-    }
-    carMesh._lodLevel = lod;
-    return carMesh;
-  } catch (error) {
-    console.error("Erro ao carregar carro:", error);
-    return null;
+  if (lod === 'simple' || deviceTier === 'low') {
+    return await loadCarSimple(vaga, scene);
+  } else {
+    return await loadCar3D(vaga, scene);
   }
 }
 
-function updateCarsLOD() {
-  if (!window.camera || !window.vagas) return;
-  const cameraPos = window.camera.position;
-  let updateCount = 0;
-  window.vagas.forEach(vaga => {
-    if (vaga.ocupada && vaga.carro) {
-      const currentLOD = vaga.carro._lodLevel || 'high';
-      const desiredLOD = getCarLOD(vaga, cameraPos);
-      if ((currentLOD === 'simple' && desiredLOD === 'high') || (currentLOD === 'high' && desiredLOD === 'simple')) {
-        if (updateCount < 2) {
-          vaga.carro.dispose();
-          loadCarWithLOD(vaga, scene, desiredLOD).then(newCar => { vaga.carro = newCar; });
-          updateCount++;
-        }
-      }
+// Processa fila de carros gradualmente
+async function processCarQueue() {
+  if (isLoadingCars || carLoadQueue.length === 0) return;
+  
+  isLoadingCars = true;
+  const batch = carLoadQueue.splice(0, config.maxCarsPerFrame);
+  
+  for (const item of batch) {
+    try {
+      const lod = getCarLOD(item.vaga, item.cameraPos);
+      item.vaga.carro = await loadCarWithLOD(item.vaga, item.scene, lod);
+    } catch (e) {
+      console.error("Erro ao carregar carro:", e);
     }
-  });
+    await new Promise(resolve => setTimeout(resolve, config.carDelay));
+  }
+  
+  isLoadingCars = false;
+  
+  if (carLoadQueue.length > 0) {
+    setTimeout(() => processCarQueue(), config.carDelay);
+  }
+}
+
+function queueCarLoad(vaga, scene, cameraPos) {
+  carLoadQueue.push({ vaga, scene, cameraPos });
+  if (!isLoadingCars) {
+    processCarQueue();
+  }
 }
 
 let lodUpdateInterval = null;
 function startLODManager() {
   if (lodUpdateInterval) clearInterval(lodUpdateInterval);
-  lodUpdateInterval = setInterval(() => updateCarsLOD(), 2000);
-  console.log("🎮 LOD Manager ativado");
+  
+  lodUpdateInterval = setInterval(() => {
+    if (!window.camera || !window.vagas || isLoadingCars) return;
+    
+    const cameraPos = window.camera.position;
+    let updateCount = 0;
+    
+    window.vagas.forEach(vaga => {
+      if (vaga.ocupada && vaga.carro && updateCount < 1) {
+        const currentLOD = vaga.carro._lodLevel || 'simple';
+        const desiredLOD = getCarLOD(vaga, cameraPos);
+        
+        if (currentLOD !== desiredLOD && deviceTier !== 'low') {
+          vaga.carro.dispose();
+          queueCarLoad(vaga, window.scene, cameraPos);
+          updateCount++;
+        }
+      }
+    });
+  }, config.lodUpdateInterval);
+  
+  console.log(`🎮 LOD Manager: atualiza a cada ${config.lodUpdateInterval}ms`);
 }
 
 function startMemoryMonitor() {
   if (!('performance' in window && 'memory' in performance)) return;
+  
   setInterval(() => {
     const memInfo = performance.memory;
     const usagePercent = memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit;
+    
     if (usagePercent > config.memoryThreshold) {
       console.warn(`⚠️ Memória: ${(usagePercent * 100).toFixed(1)}%`);
-      if (window.scene) window.scene.cleanCachedTextureBuffer();
+      
+      if (window.scene) {
+        window.scene.cleanCachedTextureBuffer();
+      }
+      
       if (config.aggressiveCleanup && window.vagas && window.camera) {
         const cameraPos = window.camera.position;
-        window.vagas.filter(v => v.carro && v.carro._lodLevel !== 'simple')
-          .sort((a, b) => BABYLON.Vector3.Distance(b.mesh.position, cameraPos) - BABYLON.Vector3.Distance(a.mesh.position, cameraPos))
-          .slice(0, 3).forEach(v => {
+        window.vagas
+          .filter(v => v.carro && v.carro._lodLevel !== 'simple')
+          .sort((a, b) => {
+            const distA = BABYLON.Vector3.Distance(a.mesh.position, cameraPos);
+            const distB = BABYLON.Vector3.Distance(b.mesh.position, cameraPos);
+            return distB - distA;
+          })
+          .slice(0, 2)
+          .forEach(v => {
             if (v.carro) {
               v.carro.dispose();
-              loadCarWithLOD(v, window.scene, 'simple').then(newCar => { v.carro = newCar; });
+              loadCarSimple(v, window.scene).then(newCar => {
+                v.carro = newCar;
+              });
             }
           });
       }
+      
       if (window.gc) window.gc();
     }
-  }, 5000);
+  }, 10000);  // Verifica a cada 10s (era 5s)
 }
 
+let fpsCounter = 0, lastFpsUpdate = Date.now();
 function updateFPSDisplay(fps) {
   const fpsEl = document.getElementById('fpsCounter');
   const tierEl = document.getElementById('tierLabel');
   if (fpsEl) {
     fpsEl.textContent = `${fps} FPS`;
-    fpsEl.style.color = fps < 25 ? '#ef4444' : fps < 40 ? '#fbbf24' : '#10b981';
+    fpsEl.style.color = fps < 20 ? '#ef4444' : fps < 35 ? '#fbbf24' : '#10b981';
   }
   if (tierEl && tierEl.textContent === 'CARREGANDO...') {
     tierEl.textContent = `MODO: ${config.name}`;
   }
 }
 
-let fpsCounter = 0, lastFpsUpdate = Date.now();
 function createOptimizedRenderLoop(engine, scene) {
   if (config.fps < 60) {
     const targetFrameTime = 1000 / config.fps;
     let lastRenderTime = 0;
+    
     engine.runRenderLoop(() => {
       const now = Date.now();
       if (now - lastRenderTime >= targetFrameTime) {
@@ -1485,20 +1572,17 @@ function createOptimizedRenderLoop(engine, scene) {
   }
 }
 
-// AGUARDA Firebase carregar
 function waitForFirebase(callback) {
   if (typeof firebase !== 'undefined') {
-    console.log("✅ Firebase carregado!");
+    console.log("✅ Firebase pronto");
     callback();
   } else {
-    console.log("⏳ Aguardando Firebase...");
     setTimeout(() => waitForFirebase(callback), 100);
   }
 }
 
-// Função que só executa DEPOIS do Firebase
 function initializeApp() {
-  console.log("🎮 Iniciando aplicação...");
+  console.log("🎮 Iniciando app...");
   
 
 
@@ -1566,11 +1650,13 @@ const canvas = document.getElementById("renderCanvas");
 let engine = new BABYLON.Engine(canvas, config.antialiasing, {
   preserveDrawingBuffer: true,
   stencil: true,
-  powerPreference: deviceTier === 'low' ? 'low-power' : 'high-performance'
+  powerPreference: deviceTier === 'low' ? 'low-power' : 'high-performance',
+  failIfMajorPerformanceCaveat: false
 }, true);
+
 if (config.renderScale < 1.0) {
   engine.setHardwareScalingLevel(1.0 / config.renderScale);
-  console.log(`📐 Resolução: ${(config.renderScale * 100)}%`);
+  console.log(`📐 Resolução: ${(config.renderScale * 100).toFixed(0)}%`);
 }
 let scene, camera;
 let vagas = [];
@@ -3886,9 +3972,9 @@ window.setTopView = setTopView;
 window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
-} // FIM da função initializeApp
+} // FIM initializeApp
 
-// AGUARDA Firebase e então inicia
+console.log("⏳ Aguardando Firebase...");
 waitForFirebase(initializeApp);
 
 </script>
