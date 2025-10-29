@@ -1887,9 +1887,9 @@ async function loadCarForVaga(vaga) {
     vaga.carro = null;
     loadedCarsCount--;
   }
-  
+ 
   try {
-    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/", "car.glb", scene);
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://linckrafael.github.io/novosCarros/", "car9.glb", scene);
     
     if (!result || !result.meshes || result.meshes.length === 0) {
       throw new Error("Modelo de carro não carregado");
@@ -2158,6 +2158,12 @@ function startFreeEdit() {
   
   if (vagaSelecionada.mesh.material) {
     vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(1, 0.6, 0);
+  }
+
+  if (isCtrlPressed && camera.inputs) {
+    camera.detachControl(canvas);
+    cameraWasAttached = false;
+    canvas.classList.add('camera-locked');
   }
   
   document.getElementById('quickActions').classList.add('show');
@@ -2897,6 +2903,45 @@ function setupInteractions() {
           }
         }
         break;
+
+case BABYLON.PointerEventTypes.POINTERDOWN: {
+  const evt = pointerInfo.event;
+  if (evt.button !== 0) break; // só botão esquerdo
+
+  const pick = scene.pick(scene.pointerX, scene.pointerY);
+  lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
+
+  if (!pick.hit) break;
+
+  // Assistente de criação (mantém o comportamento anterior, se você usava isso)
+  if (currentTool === 'create' && role !== 'viewer') {
+    pendingPosition = pick.pickedPoint.clone();
+    pendingPosition.y += 0.01;
+    if (document.getElementById('creationWizard').style.display === 'none') {
+      showCreationWizard();
+    }
+    NotificationSystem.show("Posição definida. Configure no assistente.", "info");
+    break;
+  }
+
+  // Seleciona a vaga clicada
+  const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
+  if (vaga) {
+    selectVaga(vaga);
+
+    // ✅ Inicia o arrasto somente se estiver em edição + CTRL pressionado
+    if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
+      isDragging = true;
+      canvas.style.cursor = 'move';
+      if (cameraWasAttached && !isCameraLocked) {
+        camera.detachControl(canvas);
+        cameraWasAttached = false;
+      }
+    }
+  }
+  break;
+}
+
         
       case BABYLON.PointerEventTypes.POINTERMOVE:
         if (isDragging && isEditingMode && vagaSelecionada && lastPointerPosition) {
@@ -2952,6 +2997,40 @@ function setupInteractions() {
     }
   });
 }
+
+let moveInterval = null;
+
+function moveCamera(dir, continuous = false) {
+  if (!camera) return;
+  const step = 4; // passo maior que antes (antes era 2)
+
+  switch (dir) {
+    case 'forward':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(step));
+      break;
+    case 'back':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-step));
+      break;
+    case 'left':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(-step));
+      break;
+    case 'right':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
+      break;
+  }
+
+  if (continuous && !moveInterval) {
+    moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
+  }
+}
+
+function stopMoveCamera() {
+  if (moveInterval) {
+    clearInterval(moveInterval);
+    moveInterval = null;
+  }
+}
+
 
 // ===== MONITORAMENTO DE MEMÓRIA (iOS) =====
 if (isIOS && 'performance' in window && 'memory' in performance) {
