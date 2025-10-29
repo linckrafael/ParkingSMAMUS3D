@@ -28,6 +28,21 @@
       touch-action: none; position: relative; z-index: 1;
     }
 
+#projectVersion {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none; /* não interfere nos cliques */
+  z-index: 9999;
+}
+
+
     /* ===== GLASSMORPHISM BASE ===== */
     .glass-panel {
       background: rgba(0, 68, 5, 0.85);
@@ -3749,5 +3764,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
+<div id="projectVersion">v23</div>
 </body>
 </html>
