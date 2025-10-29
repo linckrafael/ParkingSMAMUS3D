@@ -1379,7 +1379,7 @@ let vagasListener = null;
 let intervals = [];
 
 // 🔹 LIMITE DE CARROS CARREGADOS (CRÍTICO PARA iOS)
-const MAX_LOADED_CARS = 10;
+// const MAX_LOADED_CARS = 10;
 let loadedCarsCount = 0;
 
 // ===== CONTROLE DE EDIÇÃO =====
@@ -1888,45 +1888,60 @@ function startRenderLoop() {
   });
 }
 
+// ===== Nova função para não limitar carros mas continuar leve
+const carCache = {}; // armazena modelos carregados
 
-// ===== CARREGAMENTO DE CARROS COM LIMITE =====
 async function loadCarForVaga(vaga) {
-  // Limita número de carros carregados simultaneamente (iOS)
-  if (isIOS && loadedCarsCount >= MAX_LOADED_CARS) {
-    console.warn(`Limite de carros atingido (${MAX_LOADED_CARS}). Não carregando mais.`);
-    return null;
-  }
-  
+  if (!vaga || !vaga.mesh) return;
+
+  // Se já existe carro, só reposiciona
   if (vaga.carro) {
-    vaga.carro.dispose();
-    vaga.carro = null;
-    loadedCarsCount--;
+    vaga.carro.position = vaga.mesh.position.clone();
+    vaga.carro.position.y += 0.5;
+    vaga.carro.rotation.y = vaga.mesh.rotation.y;
+    return vaga.carro;
   }
- 
-  try {
-    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://linckrafael.github.io/novosCarros/", "car9.glb", scene);
-    
-    if (!result || !result.meshes || result.meshes.length === 0) {
-      throw new Error("Modelo de carro não carregado");
+
+  const carFile = vaga.carModel || "car9.glb";
+
+  // Se modelo ainda não está no cache → carrega UM VEZ
+  if (!carCache[carFile]) {
+    console.log("🔄 Carregando modelo base: ", carFile);
+
+    try {
+      const result = await BABYLON.SceneLoader.ImportMeshAsync(
+        "",
+        CAR_BASE_URL,
+        carFile,
+        scene
+      );
+
+      const baseMesh = result.meshes.find(m => m.name !== "__root__") || result.meshes[0];
+
+      baseMesh.setEnabled(false);
+      carCache[carFile] = baseMesh;
+
+    } catch (error) {
+      console.error("Erro ao carregar modelo base:", error);
+      return null;
     }
-    
-    const carRoot = result.meshes[0];
-    carRoot.position = vaga.mesh.position.clone();
-    carRoot.position.y += 0.5;
-    carRoot.rotation.y = vaga.mesh.rotation.y;
-    carRoot.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
-    
-    vaga.carro = carRoot;
-    loadedCarsCount++;
-    
-    console.log(`✅ Carro carregado. Total: ${loadedCarsCount}/${MAX_LOADED_CARS}`);
-    return carRoot;
-    
-  } catch (e) {
-    console.error("Erro ao carregar carro:", e);
-    return null;
   }
+
+  // Criar instância super leve ✅
+  const baseModel = carCache[carFile];
+  const car = baseModel.createInstance(`car_${vaga.numero}`);
+
+  car.position = vaga.mesh.position.clone();
+  car.position.y += 0.5;
+  car.rotation.y = vaga.mesh.rotation.y;
+  car.scaling.set(1.2, 1.2, 1.2);
+
+  vaga.carro = car;
+
+  return car;
 }
+
+
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
 function toggleCameraLock() {
@@ -3764,6 +3779,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
-<div id="projectVersion">v23</div>
+<div id="projectVersion">v24</div>
 </body>
 </html>
