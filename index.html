@@ -1889,25 +1889,20 @@ function startRenderLoop() {
 }
 
 // ===== Nova função para não limitar carros mas continuar leve
-const carCache = {}; // armazena modelos carregados
+const carCache = {};
 
 async function loadCarForVaga(vaga) {
   if (!vaga || !vaga.mesh) return;
 
-  // Se já existe carro, só reposiciona
+  // Já existe carro? Só posiciona corretamente
   if (vaga.carro) {
-    vaga.carro.position = vaga.mesh.position.clone();
-    vaga.carro.position.y += 0.5;
-    vaga.carro.rotation.y = vaga.mesh.rotation.y;
+    applyCarTransform(vaga);
     return vaga.carro;
   }
 
   const carFile = vaga.carModel || "car9.glb";
 
-  // Se modelo ainda não está no cache → carrega UM VEZ
   if (!carCache[carFile]) {
-    console.log("🔄 Carregando modelo base: ", carFile);
-
     try {
       const result = await BABYLON.SceneLoader.ImportMeshAsync(
         "",
@@ -1919,28 +1914,42 @@ async function loadCarForVaga(vaga) {
       const baseMesh = result.meshes.find(m => m.name !== "__root__") || result.meshes[0];
 
       baseMesh.setEnabled(false);
+      baseMesh.freezeWorldMatrix(); // ✅ performance máxima
+      baseMesh.doNotSyncBoundingInfo = true;
+      
       carCache[carFile] = baseMesh;
-
     } catch (error) {
       console.error("Erro ao carregar modelo base:", error);
       return null;
     }
   }
 
-  // Criar instância super leve ✅
-  const baseModel = carCache[carFile];
-  const car = baseModel.createInstance(`car_${vaga.numero}`);
+  const car = carCache[carFile].createInstance(`car_${vaga.numero}`);
 
-  car.position = vaga.mesh.position.clone();
-  car.position.y += 0.5;
-  car.rotation.y = vaga.mesh.rotation.y;
-  car.scaling.set(1.2, 1.2, 1.2);
+  car.doNotSyncBoundingInfo = true;
+  car.alwaysSelectAsActiveMesh = false;
 
+  car.isPickable = false;
+  car.receiveShadows = false;
+
+  car.freezeWorldMatrix();
+  
   vaga.carro = car;
+
+  applyCarTransform(vaga);
 
   return car;
 }
 
+function applyCarTransform(vaga) {
+  const car = vaga.carro;
+  car.position.copyFrom(vaga.mesh.position);
+  car.position.y += 0.5;
+  car.rotation.y = vaga.mesh.rotation.y;
+  car.scaling.set(1.2, 1.2, 1.2);
+  car.setEnabled(true);
+  car.freezeWorldMatrix();
+}
 
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
@@ -3779,6 +3788,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
-<div id="projectVersion">v24</div>
+<div id="projectVersion">v25</div>
 </body>
 </html>
