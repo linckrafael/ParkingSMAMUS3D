@@ -6,6 +6,7 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.skyMaterial.min.js"></script>
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -26,6 +27,21 @@
       width: 100%; height: 100%; display: block; 
       touch-action: none; position: relative; z-index: 1;
     }
+
+#projectVersion {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none; /* não interfere nos cliques */
+  z-index: 9999;
+}
+
 
     /* ===== GLASSMORPHISM BASE ===== */
     .glass-panel {
@@ -1023,22 +1039,10 @@
     }
 }
 
-  
-    /* OTIMIZAÇÕES */
-    .tier-high .glass-panel { background: rgba(0, 68, 5, 0.85) !important; backdrop-filter: blur(30px) !important; -webkit-backdrop-filter: blur(30px) !important; }
-    .tier-medium .glass-panel { background: rgba(0, 68, 5, 0.9) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; }
-    .tier-low .glass-panel { background: rgba(0, 68, 5, 0.95) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-    #performanceBadge { position: fixed; top: 10px; right: 10px; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; z-index: 100; opacity: 0.8; }
-    .tier-low #performanceBadge { background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; }
-    .tier-medium #performanceBadge { background: rgba(251, 191, 36, 0.3); color: #fbbf24; border: 1px solid #fbbf24; }
-    .tier-high #performanceBadge { background: rgba(16, 185, 129, 0.3); color: #10b981; border: 1px solid #10b981; }
-
   </style>
 </head>
 <body>
   <canvas id="renderCanvas"></canvas>
-
-<div id="performanceBadge"><span id="tierLabel">CARREGANDO...</span> | <span id="fpsCounter">-- FPS</span></div>
   
   <!-- Smart Dashboard Header -->
 <div id="smartDashboard" class="glass-panel">
@@ -1300,393 +1304,6 @@
 
 <script>
 
-// ===== CONFIGURAÇÃO ULTRA CONSERVADORA =====
-console.log("🚀 Modo Ultra Conservador - iPhone 13 Pro");
-
-const DeviceDetector = {
-  isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-  getIOSVersion: () => {
-    const match = navigator.userAgent.match(/OS (\d+)_/);
-    return match ? parseInt(match[1]) : 0;
-  },
-  getDeviceTier: function() {
-    if (!this.isIOS) return 'high';
-    const memory = navigator.deviceMemory || 4;
-    const cores = navigator.hardwareConcurrency || 4;
-    const iosVersion = this.getIOSVersion();
-    if (memory < 4 || cores < 6 || iosVersion < 16) return 'low';
-    else if (memory < 6 || cores < 8 || iosVersion < 17) return 'medium';
-    else return 'high';
-  }
-};
-
-const PerformanceConfig = {
-  low: { 
-    name: 'ECONOMIA',
-    renderScale: 0.5,  // 50% resolução - REDUZIDO AINDA MAIS
-    antialiasing: false,
-    shadows: false,
-    fps: 20,  // 20 FPS - REDUZIDO
-    maxCarsPerFrame: 1,  // Carrega apenas 1 carro por vez
-    carDelay: 300,  // 300ms entre cada carro
-    simplifiedRatio: 1.0,  // 100% boxes - APENAS BOXES
-    lodUpdateInterval: 99999,  // NUNCA atualiza
-    memoryThreshold: 0.6,
-    aggressiveCleanup: true,
-    disableParticles: true,
-    disablePostProcess: true,
-    freezeOnZoom: true,  // CONGELA durante zoom
-    maxVisibleDistance: 100,  // Só renderiza até 100m
-    cullAggressively: true  // Culling agressivo
-  },
-  medium: { 
-    name: 'BALANCEADO',
-    renderScale: 0.85,
-    antialiasing: true,
-    shadows: false,
-    fps: 45,
-    maxCarsPerFrame: 5,
-    carDelay: 100,
-    simplifiedRatio: 0.5,
-    lodUpdateInterval: 3000,
-    memoryThreshold: 0.85,
-    aggressiveCleanup: false
-  },
-  high: { 
-    name: 'MÁXIMA',
-    renderScale: 1.0,
-    antialiasing: true,
-    shadows: true,
-    fps: 60,
-    maxCarsPerFrame: 10,
-    carDelay: 50,
-    simplifiedRatio: 0,
-    lodUpdateInterval: 2000,
-    memoryThreshold: 0.9,
-    aggressiveCleanup: false
-  }
-};
-
-const deviceTier = DeviceDetector.getDeviceTier();
-const config = PerformanceConfig[deviceTier];
-console.log(`🎯 TIER: ${deviceTier.toUpperCase()}`);
-console.log(`⚙️ Configuração:`, config);
-
-document.body.classList.add(`tier-${deviceTier}`);
-
-// Carregamento gradual de carros
-let carLoadQueue = [];
-let isLoadingCars = false;
-
-function getCarLOD(vaga, cameraPos) {
-  if (!vaga.mesh || !cameraPos) return 'simple';
-  const distance = BABYLON.Vector3.Distance(vaga.mesh.position, cameraPos);
-  
-  // Tier LOW: Quase tudo boxes
-  if (deviceTier === 'low') {
-    return distance < 10 ? (Math.random() > config.simplifiedRatio ? 'high' : 'simple') : 'simple';
-  }
-  
-  if (deviceTier === 'medium') {
-    if (distance < 25) return 'high';
-    else return Math.random() > config.simplifiedRatio ? 'medium' : 'simple';
-  }
-  
-  if (distance < 40) return 'high';
-  else if (distance < 80) return 'medium';
-  else return 'simple';
-}
-
-async function loadCarSimple(vaga, scene) {
-  const carMesh = BABYLON.MeshBuilder.CreateBox("car_" + vaga.id, {width: 1.8, height: 1.2, depth: 4}, scene);
-  const carMat = new BABYLON.StandardMaterial("carMat_" + vaga.id, scene);
-  carMat.diffuseColor = BABYLON.Color3.Random();
-  carMat.specularColor = new BABYLON.Color3(0, 0, 0);
-  carMesh.material = carMat;
-  carMesh.position = vaga.mesh.position.clone();
-  carMesh.position.y += 0.6;
-  carMesh.rotation = vaga.mesh.rotation.clone();
-  carMesh._lodLevel = 'simple';
-  return carMesh;
-}
-
-async function loadCar3D(vaga, scene) {
-  try {
-    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/car.glb", scene);
-    const carMesh = result.meshes[0];
-    carMesh.scaling = new BABYLON.Vector3(0.015, 0.015, 0.015);
-    carMesh.position = vaga.mesh.position.clone();
-    carMesh.position.y += 0.5;
-    carMesh.rotation = vaga.mesh.rotation.clone();
-    carMesh._lodLevel = 'high';
-    return carMesh;
-  } catch (e) {
-    console.warn("Erro ao carregar 3D, usando box:", e);
-    return await loadCarSimple(vaga, scene);
-  }
-}
-
-async function loadCarWithLOD(vaga, scene, lod) {
-  // Tier LOW: SEMPRE box, NUNCA 3D
-  if (deviceTier === 'low') {
-    return await loadCarSimple(vaga, scene);
-  }
-  
-  if (lod === 'simple') {
-    return await loadCarSimple(vaga, scene);
-  } else {
-    return await loadCar3D(vaga, scene);
-  }
-}
-
-// Processa fila de carros gradualmente
-async function processCarQueue() {
-  if (isLoadingCars || carLoadQueue.length === 0) return;
-  
-  isLoadingCars = true;
-  const batch = carLoadQueue.splice(0, config.maxCarsPerFrame);
-  
-  for (const item of batch) {
-    try {
-      const lod = getCarLOD(item.vaga, item.cameraPos);
-      item.vaga.carro = await loadCarWithLOD(item.vaga, item.scene, lod);
-    } catch (e) {
-      console.error("Erro ao carregar carro:", e);
-    }
-    await new Promise(resolve => setTimeout(resolve, config.carDelay));
-  }
-  
-  isLoadingCars = false;
-  
-  if (carLoadQueue.length > 0) {
-    setTimeout(() => processCarQueue(), config.carDelay);
-  }
-}
-
-function queueCarLoad(vaga, scene, cameraPos) {
-  carLoadQueue.push({ vaga, scene, cameraPos });
-  if (!isLoadingCars) {
-    processCarQueue();
-  }
-}
-
-let lodUpdateInterval = null;
-function startLODManager() {
-  // Tier LOW: LOD Manager COMPLETAMENTE DESABILITADO
-  if (deviceTier === 'low') {
-    console.log("🚫 LOD Manager: DESABILITADO permanentemente (tier LOW)");
-    return;
-  }
-  
-  if (lodUpdateInterval) clearInterval(lodUpdateInterval);
-  
-  lodUpdateInterval = setInterval(() => {
-    if (!window.camera || !window.vagas || isLoadingCars) return;
-    
-    const cameraPos = window.camera.position;
-    let updateCount = 0;
-    
-    window.vagas.forEach(vaga => {
-      if (vaga.ocupada && vaga.carro && updateCount < 1) {
-        const currentLOD = vaga.carro._lodLevel || 'simple';
-        const desiredLOD = getCarLOD(vaga, cameraPos);
-        
-        if (currentLOD !== desiredLOD) {
-          vaga.carro.dispose();
-          queueCarLoad(vaga, window.scene, cameraPos);
-          updateCount++;
-        }
-      }
-    });
-  }, config.lodUpdateInterval);
-  
-  console.log(`🎮 LOD Manager: atualiza a cada ${config.lodUpdateInterval}ms`);
-}
-
-function startMemoryMonitor() {
-  if (!('performance' in window && 'memory' in performance)) return;
-  
-  setInterval(() => {
-    const memInfo = performance.memory;
-    const usagePercent = memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit;
-    
-    if (usagePercent > config.memoryThreshold) {
-      console.warn(`⚠️ Memória: ${(usagePercent * 100).toFixed(1)}%`);
-      
-      if (window.scene) {
-        window.scene.cleanCachedTextureBuffer();
-      }
-      
-      if (config.aggressiveCleanup && window.vagas && window.camera) {
-        const cameraPos = window.camera.position;
-        window.vagas
-          .filter(v => v.carro && v.carro._lodLevel !== 'simple')
-          .sort((a, b) => {
-            const distA = BABYLON.Vector3.Distance(a.mesh.position, cameraPos);
-            const distB = BABYLON.Vector3.Distance(b.mesh.position, cameraPos);
-            return distB - distA;
-          })
-          .slice(0, 2)
-          .forEach(v => {
-            if (v.carro) {
-              v.carro.dispose();
-              loadCarSimple(v, window.scene).then(newCar => {
-                v.carro = newCar;
-              });
-            }
-          });
-      }
-      
-      if (window.gc) window.gc();
-    }
-  }, 10000);  // Verifica a cada 10s (era 5s)
-}
-
-let fpsCounter = 0, lastFpsUpdate = Date.now();
-function updateFPSDisplay(fps) {
-  const fpsEl = document.getElementById('fpsCounter');
-  const tierEl = document.getElementById('tierLabel');
-  if (fpsEl) {
-    fpsEl.textContent = `${fps} FPS`;
-    fpsEl.style.color = fps < 20 ? '#ef4444' : fps < 35 ? '#fbbf24' : '#10b981';
-  }
-  if (tierEl && tierEl.textContent === 'CARREGANDO...') {
-    tierEl.textContent = `MODO: ${config.name}`;
-  }
-}
-
-function createOptimizedRenderLoop(engine, scene) {
-  if (config.fps < 60) {
-    const targetFrameTime = 1000 / config.fps;
-    let lastRenderTime = 0;
-    let cullCounter = 0;
-    
-    engine.runRenderLoop(() => {
-      const now = Date.now();
-      if (now - lastRenderTime >= targetFrameTime) {
-        // Durante movimento, reduz ainda mais FPS
-        if (isMovingCamera && deviceTier === 'low') {
-          if ((now - lastRenderTime) < targetFrameTime * 3) return;
-        }
-        
-        // Culling a cada 10 frames
-        if (cullCounter++ % 10 === 0 && window.camera) {
-          applyCulling(scene, window.camera);
-        }
-        
-        scene.render();
-        lastRenderTime = now;
-        fpsCounter++;
-        if (now - lastFpsUpdate >= 1000) {
-          updateFPSDisplay(fpsCounter);
-          fpsCounter = 0;
-          lastFpsUpdate = now;
-        }
-      }
-    });
-  } else {
-    engine.runRenderLoop(() => {
-      scene.render();
-      fpsCounter++;
-      if (Date.now() - lastFpsUpdate >= 1000) {
-        updateFPSDisplay(fpsCounter);
-        fpsCounter = 0;
-        lastFpsUpdate = Date.now();
-      }
-    });
-  }
-}
-
-
-
-// ===== SISTEMA DE CONGELAMENTO =====
-let isMovingCamera = false;
-let moveTimeout = null;
-let frozenFrame = null;
-let lastCameraPosition = null;
-
-function freezeRender() {
-  if (deviceTier !== 'low') return;
-  
-  isMovingCamera = true;
-  console.log("❄️ Congelando renderização...");
-}
-
-function unfreezeRender() {
-  if (deviceTier !== 'low') return;
-  
-  isMovingCamera = false;
-  console.log("🔥 Descongelando renderização...");
-}
-
-function onCameraMove(camera) {
-  if (deviceTier !== 'low') return;
-  
-  const currentPos = camera.position.clone();
-  
-  if (lastCameraPosition) {
-    const distance = BABYLON.Vector3.Distance(currentPos, lastCameraPosition);
-    
-    // Se movimento significativo (zoom)
-    if (distance > 1) {
-      freezeRender();
-      
-      if (moveTimeout) clearTimeout(moveTimeout);
-      moveTimeout = setTimeout(() => {
-        unfreezeRender();
-      }, 500);  // Descongela 500ms após parar
-    }
-  }
-  
-  lastCameraPosition = currentPos;
-}
-
-// Culling agressivo - não renderiza o que está longe
-function applyCulling(scene, camera) {
-  if (deviceTier !== 'low' || !config.cullAggressively) return;
-  
-  const cameraPos = camera.position;
-  const maxDist = config.maxVisibleDistance;
-  
-  scene.meshes.forEach(mesh => {
-    if (mesh.name && mesh.name.startsWith('car_')) {
-      const distance = BABYLON.Vector3.Distance(mesh.position, cameraPos);
-      mesh.isVisible = distance < maxDist;
-    }
-  });
-}
-
-
-function waitForFirebase(callback, attempts = 0) {
-  const maxAttempts = 100; // 10 segundos (100 * 100ms)
-  
-  if (typeof firebase !== 'undefined') {
-    console.log("✅ Firebase carregado!");
-    callback(true);
-  } else if (attempts < maxAttempts) {
-    console.log(`⏳ Aguardando Firebase... (${attempts + 1}/${maxAttempts})`);
-    setTimeout(() => waitForFirebase(callback, attempts + 1), 100);
-  } else {
-    console.error("❌ Firebase não carregou após 10 segundos");
-    alert("⚠️ Firebase não carregou. A aplicação iniciará em MODO OFFLINE (sem sincronização).\n\nVerifique sua conexão e recarregue a página.");
-    callback(false); // Inicia sem Firebase
-  }
-}
-
-function initializeApp(hasFirebase) {
-  console.log("🎮 Iniciando app...");
-  
-  if (!hasFirebase) {
-    console.warn("⚠️ MODO OFFLINE - Firebase não disponível");
-    console.warn("⚠️ Funcionalidades limitadas:");
-    console.warn("   - Não será possível salvar vagas");
-    console.warn("   - Não será possível sincronizar dados");
-    console.warn("   - Sistema funcionará apenas localmente");
-  }
-  
-
-
-
 // ===== DETECÇÃO iOS =====
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isReload = performance.navigation.type === 1;
@@ -1748,17 +1365,7 @@ firebase.auth().onAuthStateChanged(user => {
 
 // ===== VARIÁVEIS GLOBAIS =====
 const canvas = document.getElementById("renderCanvas");
-let engine = new BABYLON.Engine(canvas, config.antialiasing, {
-  preserveDrawingBuffer: true,
-  stencil: true,
-  powerPreference: deviceTier === 'low' ? 'low-power' : 'high-performance',
-  failIfMajorPerformanceCaveat: false
-}, true);
-
-if (config.renderScale < 1.0) {
-  engine.setHardwareScalingLevel(1.0 / config.renderScale);
-  console.log(`📐 Resolução: ${(config.renderScale * 100).toFixed(0)}%`);
-}
+let engine = new BABYLON.Engine(canvas, true);
 let scene, camera;
 let vagas = [];
 let vagaSelecionada = null;
@@ -1771,9 +1378,6 @@ let easterEggToggle = false;
 let vagasListener = null;
 let intervals = [];
 
-// 🔹 LIMITE DE CARROS CARREGADOS (CRÍTICO PARA iOS)
-const MAX_LOADED_CARS = 10;
-let loadedCarsCount = 0;
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1816,26 +1420,7 @@ function cleanupResources() {
       vagasListener = null;
     }
     
-    // 3. Limpa carros e vagas
-    vagas.forEach(vaga => {
-      try {
-        if (vaga.carro) {
-          vaga.carro.dispose();
-          vaga.carro = null;
-          loadedCarsCount--;
-        }
-        if (vaga.mesh) {
-          if (vaga.mesh._labelPlane) vaga.mesh._labelPlane.dispose();
-          if (vaga.mesh._labelADT) vaga.mesh._labelADT.dispose();
-          vaga.mesh.dispose();
-        }
-      } catch (e) {
-        console.error("Erro ao limpar vaga:", e);
-      }
-    });
-    vagas = [];
-    vagaSelecionada = null;
-    loadedCarsCount = 0;
+ 
     
     // 4. Para render loop
     if (engine) {
@@ -2008,17 +1593,6 @@ function initializeScene() {
     );
 
     camera.attachControl(canvas, true);
-
-
-  // Observer de movimento da câmera
-  if (config.freezeOnZoom) {
-    camera.onViewMatrixChangedObservable.add(() => {
-      onCameraMove(camera);
-    });
-    console.log("👁️ Observer de câmera ativo");
-  }
-  
-
     camera.pinchToPanMaxDistance = 50;
     camera.panningSensibility = 8;
     camera.angularSensibilityX = 3000;
@@ -2081,17 +1655,6 @@ function initializeScene() {
   }
   
   camera.attachControl(canvas, true);
-
-
-  // Observer de movimento da câmera
-  if (config.freezeOnZoom) {
-    camera.onViewMatrixChangedObservable.add(() => {
-      onCameraMove(camera);
-    });
-    console.log("👁️ Observer de câmera ativo");
-  }
-  
-
   cameraWasAttached = true;
   
   // Tratamento de contexto WebGL perdido
@@ -2121,11 +1684,9 @@ function initializeScene() {
   }, false);
   
   // Iluminação
-  const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
-  hemiLight.intensity = 0.8;
+  let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+  hemiLight.intensity = 1.8;
   
-  const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -1, -1), scene);
-  dirLight.intensity = 0.5;
   
   // Chão
   const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 }, scene);
@@ -2137,20 +1698,20 @@ function initializeScene() {
   groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
   ground.material = groundMat;
 
-  /* Skybox
-  const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500 }, scene);
-  skybox.rotation.y = BABYLON.Tools.ToRadians(270); 
-  const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
-  skyboxMaterial.backFaceCulling = false;
-  skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
-    "textures/sky/sky_lowres",
-    scene
-  );
-  skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-  skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-  skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-  skybox.material = skyboxMaterial;
-  */
+// ===== CÉU AZUL LIMPO E REALISTA =====
+const skyMaterial = new BABYLON.SkyMaterial("skyMaterial", scene);
+skyMaterial.backFaceCulling = false;
+skyMaterial.turbidity = 2;
+skyMaterial.luminance = 1;
+skyMaterial.useSunPosition = true;
+skyMaterial.sunPosition = new BABYLON.Vector3(0, 30, 0);
+skyMaterial.cameraOffset.y = 0;
+
+const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2500.0 }, scene);
+skybox.material = skyMaterial;
+
+
+  
   // Carregamento do modelo
   BABYLON.SceneLoader.Append("https://linckrafael.github.io/Smamus3Dv7/", PARKING_MODEL_FILE, scene, () => {
     NotificationSystem.show("Modelo do estacionamento carregado", "success");
@@ -2176,6 +1737,15 @@ function initializeScene() {
 }
 
 async function aplicarClimaAutomatico(scene) {
+
+  // ⚠️ MODO DE TESTE — força um tipo de clima específico
+  // const tipo = "rain";      // 🌧️ chuva
+  // const tipo = "cloud";     // ☁️ nublado
+  // const tipo = "mist";      // 🌫️ neblina
+  // const tipo = "storm";     // ⛈️ tempestade
+  // const tipo = "snow";      // ❄️ neve
+  // const tipo = "clear";     // ☀️ céu limpo
+
   const tipo = await obterClimaAtual();
   if (!tipo) return;
   
@@ -2192,29 +1762,32 @@ async function aplicarClimaAutomatico(scene) {
   if (tipo.includes("rain")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.005;
-    scene.fogColor = new BABYLON.Color3(0.75, 0.78, 0.8);
+    scene.fogDensity = 0.0013;
+    scene.fogColor = new BABYLON.Color3(0.3, 0.3, 0.9);
     console.log("🌧️ Clima: Chuva");
+      let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1;
   } 
-  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("fog")) {
+  else if (tipo.includes("cloud") || tipo.includes("mist") || tipo.includes("snow") || tipo.includes("fog")) {
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.002;
-    scene.fogColor = new BABYLON.Color3(0.8, 0.85, 0.9);
-    console.log("🌫️ Clima: Neblina leve");
+    scene.fogDensity = 0.0015;
+    scene.fogColor = new BABYLON.Color3(0.8, 0.8, 0.9);
+    console.log("🌫️ Clima: cloud, mist, snow and fog");
+  let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1.2;
   } 
   else if (tipo.includes("clear")) {
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
     console.log("☀️ Clima: Céu limpo");
   } 
-  else if (tipo.includes("storm") || tipo.includes("thunder")) {
+  else if (tipo.includes("storm")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.007;
-    scene.fogColor = new BABYLON.Color3(0.6, 0.65, 0.7);
-    const light = new BABYLON.DirectionalLight("stormLight", new BABYLON.Vector3(-1, -2, -1), scene);
-    light.intensity = 0.6;
-    scene.registerBeforeRender(() => relampago(scene, light));
+    scene.fogDensity = 0.003;
+    scene.fogColor = new BABYLON.Color3(0, 0, 0.3);
     console.log("⛈️ Clima: Tempestade");
+let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 0, 0), scene);
+  hemiLight.intensity = -1.6;
   } 
   else {
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
@@ -2228,15 +1801,12 @@ async function aplicarClimaAutomatico(scene) {
     scene.clearColor = new BABYLON.Color3(0.8, 0.9, 1.0);
   }
 }
-
 function criarChuva(scene) {
   // Desabilita chuva no iOS para evitar crashes
   if (isIOS) {
     console.log("Chuva desabilitada no iOS para performance");
     return;
   }
-  
-  // Código da chuva aqui (se tiver)
 }
 
 function atualizarPainelClima(tipo) {
@@ -2252,19 +1822,19 @@ function atualizarPainelClima(tipo) {
   let texto = "Céu limpo ☀️";
 
   if (tipo.includes("rain")) {
-    icon = "https://img.icons8.com/emoji/48/cloud-with-rain.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/414/414974.png";
     texto = "Chuva 🌧️";
-  } else if (tipo.includes("storm") || tipo.includes("thunder")) {
+  } else if (tipo.includes("storm")) {
     icon = "https://img.icons8.com/emoji/48/cloud-with-lightning-and-rain.png";
     texto = "Tempestade ⛈️";
   } else if (tipo.includes("cloud")) {
-    icon = "https://img.icons8.com/emoji/48/sun-emoji.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/1163/1163624.png";
     texto = "Nublado ☁️";
   } else if (tipo.includes("mist") || tipo.includes("fog") || tipo.includes("haze")) {
     icon = "https://img.icons8.com/emoji/48/fog.png";
     texto = "Névoa 🌫️";
   } else if (tipo.includes("snow")) {
-    icon = "https://img.icons8.com/emoji/48/cloud-with-snow.png";
+    icon = "https://cdn-icons-png.flaticon.com/512/642/642102.png";
     texto = "Neve ❄️";
   }
 
@@ -2272,9 +1842,6 @@ function atualizarPainelClima(tipo) {
   climaTexto.textContent = texto;
 }
 
-const isLowPowerDevice = /iPhone1[2-4]|iPhone SE|iPad/i.test(navigator.userAgent);
-const fpsLimit = isLowPowerDevice ? 30 : 60;
-engine.setHardwareScalingLevel(isLowPowerDevice ? 2 : 1); // Reduz resolução em devices mais fracos
 
 // ===== RENDER LOOP SEGURO E OTIMIZADO =====
 function startRenderLoop() {
@@ -2299,45 +1866,69 @@ function startRenderLoop() {
   });
 }
 
+// ===== Nova função para não limitar carros mas continuar leve
+const carCache = {};
 
-// ===== CARREGAMENTO DE CARROS COM LIMITE =====
 async function loadCarForVaga(vaga) {
-  // Limita número de carros carregados simultaneamente (iOS)
-  if (isIOS && loadedCarsCount >= MAX_LOADED_CARS) {
-    console.warn(`Limite de carros atingido (${MAX_LOADED_CARS}). Não carregando mais.`);
-    return null;
-  }
-  
+  if (!vaga || !vaga.mesh) return;
+
+  // Já existe carro? Só posiciona corretamente
   if (vaga.carro) {
-    vaga.carro.dispose();
-    vaga.carro = null;
-    loadedCarsCount--;
+    applyCarTransform(vaga);
+    return vaga.carro;
   }
-  
-  try {
-    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://models.babylonjs.com/", "car.glb", scene);
-    
-    if (!result || !result.meshes || result.meshes.length === 0) {
-      throw new Error("Modelo de carro não carregado");
+
+  const carFile = vaga.carModel || "car9.glb";
+
+  if (!carCache[carFile]) {
+    try {
+      const result = await BABYLON.SceneLoader.ImportMeshAsync(
+        "",
+        CAR_BASE_URL,
+        carFile,
+        scene
+      );
+
+      const baseMesh = result.meshes.find(m => m.name !== "__root__") || result.meshes[0];
+
+      baseMesh.setEnabled(false);
+      baseMesh.freezeWorldMatrix(); // ✅ performance máxima
+      baseMesh.doNotSyncBoundingInfo = true;
+      
+      carCache[carFile] = baseMesh;
+    } catch (error) {
+      console.error("Erro ao carregar modelo base:", error);
+      return null;
     }
-    
-    const carRoot = result.meshes[0];
-    carRoot.position = vaga.mesh.position.clone();
-    carRoot.position.y += 0.5;
-    carRoot.rotation.y = vaga.mesh.rotation.y;
-    carRoot.scaling = new BABYLON.Vector3(1.2, 1.2, 1.2);
-    
-    vaga.carro = carRoot;
-    loadedCarsCount++;
-    
-    console.log(`✅ Carro carregado. Total: ${loadedCarsCount}/${MAX_LOADED_CARS}`);
-    return carRoot;
-    
-  } catch (e) {
-    console.error("Erro ao carregar carro:", e);
-    return null;
   }
+
+  const car = carCache[carFile].createInstance(`car_${vaga.numero}`);
+
+  car.doNotSyncBoundingInfo = true;
+  car.alwaysSelectAsActiveMesh = false;
+
+  car.isPickable = false;
+  car.receiveShadows = false;
+
+  car.freezeWorldMatrix();
+  
+  vaga.carro = car;
+
+  applyCarTransform(vaga);
+
+  return car;
 }
+
+function applyCarTransform(vaga) {
+  const car = vaga.carro;
+  car.position.copyFrom(vaga.mesh.position);
+  car.position.y += 0.5;
+  car.rotation.y = vaga.mesh.rotation.y;
+  car.scaling.set(1.2, 1.2, 1.2);
+  car.setEnabled(true);
+  car.freezeWorldMatrix();
+}
+
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
 function toggleCameraLock() {
@@ -2353,17 +1944,6 @@ function toggleCameraLock() {
   if (isCameraLocked) {
     isCameraLocked = false;
     camera.attachControl(canvas, true);
-
-
-  // Observer de movimento da câmera
-  if (config.freezeOnZoom) {
-    camera.onViewMatrixChangedObservable.add(() => {
-      onCameraMove(camera);
-    });
-    console.log("👁️ Observer de câmera ativo");
-  }
-  
-
     cameraWasAttached = true;
     
     lockBtn.className = 'unlocked';
@@ -2479,17 +2059,6 @@ function setupKeyboardControls() {
         isCtrlPressed = false;
         if (!isDragging && !isCameraLocked && camera.inputs) {
           camera.attachControl(canvas, true);
-
-
-  // Observer de movimento da câmera
-  if (config.freezeOnZoom) {
-    camera.onViewMatrixChangedObservable.add(() => {
-      onCameraMove(camera);
-    });
-    console.log("👁️ Observer de câmera ativo");
-  }
-  
-
           cameraWasAttached = true;
           canvas.classList.remove('camera-locked');
         }
@@ -2607,6 +2176,12 @@ function startFreeEdit() {
   if (vagaSelecionada.mesh.material) {
     vagaSelecionada.mesh.material.emissiveColor = new BABYLON.Color3(1, 0.6, 0);
   }
+
+  if (isCtrlPressed && camera.inputs) {
+    camera.detachControl(canvas);
+    cameraWasAttached = false;
+    canvas.classList.add('camera-locked');
+  }
   
   document.getElementById('quickActions').classList.add('show');
   updateNavigationHelp();
@@ -2653,17 +2228,6 @@ function exitEditMode() {
   
   if (!isCtrlPressed && !cameraWasAttached && !isCameraLocked && camera.inputs) {
     camera.attachControl(canvas, true);
-
-
-  // Observer de movimento da câmera
-  if (config.freezeOnZoom) {
-    camera.onViewMatrixChangedObservable.add(() => {
-      onCameraMove(camera);
-    });
-    console.log("👁️ Observer de câmera ativo");
-  }
-  
-
     cameraWasAttached = true;
     canvas.classList.remove('camera-locked');
   }
@@ -3356,6 +2920,45 @@ function setupInteractions() {
           }
         }
         break;
+
+case BABYLON.PointerEventTypes.POINTERDOWN: {
+  const evt = pointerInfo.event;
+  if (evt.button !== 0) break; // só botão esquerdo
+
+  const pick = scene.pick(scene.pointerX, scene.pointerY);
+  lastPointerPosition = { x: scene.pointerX, y: scene.pointerY };
+
+  if (!pick.hit) break;
+
+  // Assistente de criação (mantém o comportamento anterior, se você usava isso)
+  if (currentTool === 'create' && role !== 'viewer') {
+    pendingPosition = pick.pickedPoint.clone();
+    pendingPosition.y += 0.01;
+    if (document.getElementById('creationWizard').style.display === 'none') {
+      showCreationWizard();
+    }
+    NotificationSystem.show("Posição definida. Configure no assistente.", "info");
+    break;
+  }
+
+  // Seleciona a vaga clicada
+  const vaga = vagas.find(v => v.mesh === pick.pickedMesh);
+  if (vaga) {
+    selectVaga(vaga);
+
+    // ✅ Inicia o arrasto somente se estiver em edição + CTRL pressionado
+    if (isCtrlPressed && isEditingMode && vaga === vagaSelecionada) {
+      isDragging = true;
+      canvas.style.cursor = 'move';
+      if (cameraWasAttached && !isCameraLocked) {
+        camera.detachControl(canvas);
+        cameraWasAttached = false;
+      }
+    }
+  }
+  break;
+}
+
         
       case BABYLON.PointerEventTypes.POINTERMOVE:
         if (isDragging && isEditingMode && vagaSelecionada && lastPointerPosition) {
@@ -3412,7 +3015,42 @@ function setupInteractions() {
   });
 }
 
+let moveInterval = null;
+
+function moveCamera(dir, continuous = false) {
+  if (!camera) return;
+  const step = 4; // passo maior que antes (antes era 2)
+
+  switch (dir) {
+    case 'forward':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(step));
+      break;
+    case 'back':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-step));
+      break;
+    case 'left':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(-step));
+      break;
+    case 'right':
+      camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(step));
+      break;
+  }
+
+  if (continuous && !moveInterval) {
+    moveInterval = setInterval(() => moveCamera(dir), 80); // repete a cada 80ms
+  }
+}
+
+function stopMoveCamera() {
+  if (moveInterval) {
+    clearInterval(moveInterval);
+    moveInterval = null;
+  }
+}
+
+
 // ===== MONITORAMENTO DE MEMÓRIA (iOS) =====
+/*
 if (isIOS && 'performance' in window && 'memory' in performance) {
   intervals.memory = setInterval(() => {
     try {
@@ -3452,6 +3090,8 @@ if (isIOS && 'performance' in window && 'memory' in performance) {
     }
   }, 10000); // Check a cada 10 segundos
 }
+
+*/
 
 // ===== SISTEMA DE AUTENTICAÇÃO =====
 const ROLE_CREDENTIALS = {
@@ -3988,12 +3628,12 @@ if (isIOS && isReload) {
   // Pequeno delay antes de inicializar para dar tempo do Safari limpar recursos
   setTimeout(() => {
     initializeScene();
-    createOptimizedRenderLoop(engine, scene);
+    engine.runRenderLoop(() => scene.render());
   }, 100);
 } else {
   // Inicialização normal
   initializeScene();
-  createOptimizedRenderLoop(engine, scene);
+  engine.runRenderLoop(() => scene.render());
 }
 
 window.addEventListener("resize", () => {
@@ -4128,11 +3768,7 @@ window.setTopView = setTopView;
 window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
-} // FIM initializeApp
-
-console.log("⏳ Aguardando Firebase...");
-waitForFirebase(initializeApp);
-
 </script>
+<div id="projectVersion">v26</div>
 </body>
 </html>
