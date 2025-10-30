@@ -3198,7 +3198,7 @@ if (isIOS && 'performance' in window && 'memory' in performance) {
         }
         
         // Remove carros distantes
-        if (camera && loadedCarsCount > 5) {
+        if (camera > 5) {
           const cameraPos = camera.position;
           vagas
             .filter(v => v.carro)
@@ -3212,7 +3212,6 @@ if (isIOS && 'performance' in window && 'memory' in performance) {
               if (v.carro) {
                 v.carro.dispose();
                 v.carro = null;
-                loadedCarsCount--;
               }
             });
         }
@@ -3901,6 +3900,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
-<div id="projectVersion">v28</div>
+<div id="projectVersion">v29</div>
 </body>
 </html>
