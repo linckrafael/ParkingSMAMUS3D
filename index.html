@@ -1378,9 +1378,23 @@ let easterEggToggle = false;
 let vagasListener = null;
 let intervals = [];
 
-// 🔹 LIMITE DE CARROS CARREGADOS (CRÍTICO PARA iOS)
-// const MAX_LOADED_CARS = 10;
-let loadedCarsCount = 0;
+let impostorMat = null;
+function getImpostorMesh() {
+  if (!impostorMat) {
+    impostorMat = new BABYLON.StandardMaterial("impostorMat", scene);
+    impostorMat.diffuseColor = new BABYLON.Color3(0.15, 0.7, 0.2); // verde "carro"
+    impostorMat.specularColor = new BABYLON.Color3(0,0,0);
+    impostorMat.freeze(); // material estático
+  }
+  const box = BABYLON.MeshBuilder.CreateBox("car_impostor", { width: 1.8, height: 1.2, depth: 4.2 }, scene);
+  box.material = impostorMat;
+  box.isPickable = false;
+  box.alwaysSelectAsActiveMesh = false;
+  box.setEnabled(false);
+  return box;
+}
+
+
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1404,6 +1418,29 @@ const VAGA_COMPRIMENTO = 8.0;
 const VAGA_ALTURA = 2.0;
 const MARGEM_ESCALA = 0.95;
 
+// ===== QUALITY / DEVICE TIER =====
+const Quality = {
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+};
+
+function getDeviceTier() {
+  const mem = navigator.deviceMemory || 1;                // 0.5–8 (aprox)
+  const cores = navigator.hardwareConcurrency || 1;       // 1–8+
+  const isOldAndroid = /Android\s(5|6|7|8|9)/i.test(navigator.userAgent);
+  const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 720;
+
+  // Heurística conservadora (prioriza estabilidade)
+  if (mem <= 2 || cores <= 4 || isOldAndroid) return Quality.LOW;
+  if (mem <= 4 || smallScreen) return Quality.MEDIUM;
+  return Quality.HIGH;
+}
+
+const DEVICE_TIER = getDeviceTier();
+console.log("🎚️ DEVICE_TIER =", DEVICE_TIER);
+
+
 // ===== 🚨 SISTEMA DE LIMPEZA MELHORADO =====
 function cleanupResources() {
   console.log("🧹 Iniciando limpeza completa de recursos...");
@@ -1423,26 +1460,7 @@ function cleanupResources() {
       vagasListener = null;
     }
     
-    // 3. Limpa carros e vagas
-    vagas.forEach(vaga => {
-      try {
-        if (vaga.carro) {
-          vaga.carro.dispose();
-          vaga.carro = null;
-          loadedCarsCount--;
-        }
-        if (vaga.mesh) {
-          if (vaga.mesh._labelPlane) vaga.mesh._labelPlane.dispose();
-          if (vaga.mesh._labelADT) vaga.mesh._labelADT.dispose();
-          vaga.mesh.dispose();
-        }
-      } catch (e) {
-        console.error("Erro ao limpar vaga:", e);
-      }
-    });
-    vagas = [];
-    vagaSelecionada = null;
-    loadedCarsCount = 0;
+ 
     
     // 4. Para render loop
     if (engine) {
@@ -1545,6 +1563,14 @@ function initializeScene() {
   };
   
   engine = new BABYLON.Engine(canvas, true, engineOptions);
+
+  // Ajustes finos por tier
+if (DEVICE_TIER === Quality.LOW) {
+  // Reduz resolução renderizada (aumenta escala de hardware)
+  engine.setHardwareScalingLevel(2);        // 1.5–2 para celulares fracos
+} else if (DEVICE_TIER === Quality.MEDIUM) {
+  engine.setHardwareScalingLevel(1.3);
+}
   
   // Limita FPS no iOS
   if (isIOS) {
@@ -1564,6 +1590,15 @@ function initializeScene() {
   scene.autoClear = false;
   scene.autoClearDepthAndStencil = false;
   scene.blockMaterialDirtyMechanism = true;
+
+  scene.skipPointerMovePicking = true;         // menos raycasts
+  scene.requireLightSorting = false;
+  scene.useRightHandedSystem = false;          // mantém default
+
+  if (DEVICE_TIER === Quality.LOW) {
+  scene.maxSimultaneousLights = 1;
+  scene.fogEnabled = false; // fog gasta GPU nas fraquinhas
+}
 
 
   // Otimizações específicas para iOS
@@ -1678,6 +1713,8 @@ function initializeScene() {
   
   camera.attachControl(canvas, true);
   cameraWasAttached = true;
+
+
   
   // Tratamento de contexto WebGL perdido
   canvas.addEventListener('webglcontextlost', (event) => {
@@ -1781,6 +1818,15 @@ async function aplicarClimaAutomatico(scene) {
     scene._rainSystem = null;
   }
 
+  if (DEVICE_TIER === Quality.LOW) {
+  // nada de fog, nada de chuva/partículas
+  scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+  if (scene._rainSystem) { scene._rainSystem.stop(); scene._rainSystem.dispose(); scene._rainSystem = null; }
+  console.log("⛅ LOW tier: clima visual simplificado");
+  return; // mantém o céu limpo/leve
+}
+
+
   if (tipo.includes("rain")) {
     if (!isIOS) criarChuva(scene);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
@@ -1864,37 +1910,118 @@ function atualizarPainelClima(tipo) {
   climaTexto.textContent = texto;
 }
 
+// ===== VISIBILITY & LOD MANAGER =====
+const Visibility = {
+  // Distâncias em metros (ajuste fino se quiser)
+  REAL_DIST: 55,     // usa carro 3D real se perto
+  IMPOSTOR_DIST: 120 // usa caixa simples se longe (e esconde além disso)
+};
+
+let impostorBase = null; // base para clonar impostores
+
+function isInView(pos, camera) {
+  // Checagem simples por distância + altura
+  const d = BABYLON.Vector3.Distance(camera.position, pos);
+  return d < Visibility.IMPOSTOR_DIST * 1.3; // pequena margem
+}
+
+function updateVagaLOD(vaga) {
+  if (!vaga.mesh || !camera) return;
+
+  const pos = vaga.mesh.getAbsolutePosition();
+  if (!isInView(pos, camera)) {
+    // muito longe: desabilita ambos
+    if (vaga.carro) vaga.carro.setEnabled(false);
+    if (vaga.impostor) vaga.impostor.setEnabled(false);
+    return;
+  }
+
+  const dist = BABYLON.Vector3.Distance(camera.position, pos);
+  const wantReal = (DEVICE_TIER !== Quality.LOW && dist <= Visibility.IMPOSTOR_DIST) || dist <= Visibility.REAL_DIST;
+
+  if (wantReal) {
+    // mostrar 3D real, esconder impostor
+    if (vaga.impostor) vaga.impostor.setEnabled(false);
+    if (vaga.ocupada) {
+      loadCarForVaga(vaga).then(car => {
+        if (car) {
+          car.setEnabled(true);
+          applyCarTransform(vaga);
+        }
+      });
+    } else {
+      if (vaga.carro) vaga.carro.setEnabled(false);
+    }
+  } else {
+    // mostrar impostor simples
+    if (!vaga.impostor) {
+      if (!impostorBase) impostorBase = getImpostorMesh();
+      vaga.impostor = impostorBase.createInstance(`imp_${vaga.numero || ""}`);
+      vaga.impostor.alwaysSelectAsActiveMesh = false;
+      vaga.impostor.doNotSyncBoundingInfo = true;
+    }
+    // posiciona impostor
+    vaga.impostor.position.copyFrom(vaga.mesh.position);
+    vaga.impostor.position.y += 0.6;
+    vaga.impostor.rotation.y = vaga.mesh.rotation.y;
+    vaga.impostor.setEnabled(!!vaga.ocupada);
+
+    // e esconde 3D real se existir
+    if (vaga.carro) vaga.carro.setEnabled(false);
+  }
+}
+
+// Recalcula LOD quando a câmera move/rotaciona/zoom
+let _lodThrottle = 0;
+scene?.onBeforeRenderObservable.add(() => {
+  const t = performance.now();
+  if (t - _lodThrottle < 120) return; // atualiza ~8x/s
+  _lodThrottle = t;
+
+  for (const vaga of vagas) {
+    updateVagaLOD(vaga);
+  }
+});
+
 
 // ===== RENDER LOOP SEGURO E OTIMIZADO =====
 function startRenderLoop() {
   if (!engine || engine.isDisposed) return;
 
   let lastFrame = 0;
-  const fpsLimit = /iPhone13/i.test(navigator.userAgent) ? 30 : 60; // reduz FPS só no iPhone 13
+  let targetFps = (DEVICE_TIER === Quality.LOW) ? 30 : 60;
 
+  // auto-ajustador: se o frame está atrasando, reduza targetFps temporariamente
+  let emaFrame = 16; // média móvel
   engine.runRenderLoop(() => {
-    try {
-      if (!scene || scene.isDisposed) return;
+    if (!scene || scene.isDisposed) return;
 
-      const now = performance.now();
-      if (now - lastFrame >= 1000 / fpsLimit) {
-        scene.render();
-        lastFrame = now;
+    const now = performance.now();
+    const dt = now - lastFrame;
+    if (dt >= 1000 / targetFps) {
+      scene.render();
+      lastFrame = now;
+
+      // atualiza média e ajusta target
+      emaFrame = 0.9 * emaFrame + 0.1 * dt;
+      if (DEVICE_TIER !== Quality.HIGH) {
+        if (emaFrame > (1000 / targetFps) * 1.25 && targetFps > 24) {
+          targetFps = Math.max(24, targetFps - 6); // murcha FPS se estiver pesado
+        } else if (emaFrame < (1000 / targetFps) * 0.85 && targetFps < 60) {
+          targetFps = Math.min(60, targetFps + 6); // volta a subir se sobrar folga
+        }
       }
-    } catch (e) {
-      console.error("Erro no render loop:", e);
-      engine.stopRenderLoop();
     }
   });
 }
+
 
 // ===== Nova função para não limitar carros mas continuar leve
 const carCache = {};
 
 async function loadCarForVaga(vaga) {
-  if (!vaga || !vaga.mesh) return;
+  if (!vaga || !vaga.mesh) return null;
 
-  // Já existe carro? Só posiciona corretamente
   if (vaga.carro) {
     applyCarTransform(vaga);
     return vaga.carro;
@@ -1903,53 +2030,36 @@ async function loadCarForVaga(vaga) {
   const carFile = vaga.carModel || "car9.glb";
 
   if (!carCache[carFile]) {
-    try {
-      const result = await BABYLON.SceneLoader.ImportMeshAsync(
-        "",
-        CAR_BASE_URL,
-        carFile,
-        scene
-      );
-
-      const baseMesh = result.meshes.find(m => m.name !== "__root__") || result.meshes[0];
-
-      baseMesh.setEnabled(false);
-      baseMesh.freezeWorldMatrix(); // ✅ performance máxima
-      baseMesh.doNotSyncBoundingInfo = true;
-      
-      carCache[carFile] = baseMesh;
-    } catch (error) {
-      console.error("Erro ao carregar modelo base:", error);
-      return null;
-    }
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", CAR_BASE_URL, carFile, scene);
+    const baseMesh = result.meshes.find(m => m.name !== "__root__") || result.meshes[0];
+    baseMesh.setEnabled(false);
+    baseMesh.doNotSyncBoundingInfo = true;
+    baseMesh.alwaysSelectAsActiveMesh = false;
+    carCache[carFile] = baseMesh;
   }
 
-  const car = carCache[carFile].createInstance(`car_${vaga.numero}`);
-
+  const car = carCache[carFile].createInstance(`car_${vaga.numero || ""}`);
   car.doNotSyncBoundingInfo = true;
   car.alwaysSelectAsActiveMesh = false;
-
   car.isPickable = false;
-  car.receiveShadows = false;
-
-  car.freezeWorldMatrix();
-  
   vaga.carro = car;
 
   applyCarTransform(vaga);
-
   return car;
 }
 
 function applyCarTransform(vaga) {
   const car = vaga.carro;
+  if (!car) return;
+  car.setEnabled(true);
   car.position.copyFrom(vaga.mesh.position);
   car.position.y += 0.5;
   car.rotation.y = vaga.mesh.rotation.y;
   car.scaling.set(1.2, 1.2, 1.2);
-  car.setEnabled(true);
+  // congele só no fim
   car.freezeWorldMatrix();
 }
+
 
 
 // ===== SISTEMA DE BLOQUEIO DE CÂMERA =====
@@ -3072,6 +3182,7 @@ function stopMoveCamera() {
 
 
 // ===== MONITORAMENTO DE MEMÓRIA (iOS) =====
+/*
 if (isIOS && 'performance' in window && 'memory' in performance) {
   intervals.memory = setInterval(() => {
     try {
@@ -3111,6 +3222,8 @@ if (isIOS && 'performance' in window && 'memory' in performance) {
     }
   }, 10000); // Check a cada 10 segundos
 }
+
+*/
 
 // ===== SISTEMA DE AUTENTICAÇÃO =====
 const ROLE_CREDENTIALS = {
@@ -3788,6 +3901,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
-<div id="projectVersion">v25</div>
+<div id="projectVersion">v27</div>
 </body>
 </html>
