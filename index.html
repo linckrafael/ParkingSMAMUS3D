@@ -1377,24 +1377,23 @@ let carroCounter = 0;
 let easterEggToggle = false;
 let vagasListener = null;
 let intervals = [];
-
 let impostorMat = null;
+
+
 function getImpostorMesh() {
   if (!impostorMat) {
     impostorMat = new BABYLON.StandardMaterial("impostorMat", scene);
     impostorMat.diffuseColor = new BABYLON.Color3(0.15, 0.7, 0.2); // verde "carro"
-    impostorMat.specularColor = new BABYLON.Color3(0,0,0);
-    impostorMat.freeze(); // material estático
+    impostorMat.specularColor = new BABYLON.Color3(0, 0, 0);
+    impostorMat.freeze();
   }
   const box = BABYLON.MeshBuilder.CreateBox("car_impostor", { width: 1.8, height: 1.2, depth: 4.2 }, scene);
   box.material = impostorMat;
   box.isPickable = false;
   box.alwaysSelectAsActiveMesh = false;
-  box.setEnabled(false);
+  box.setEnabled(true); // 🔹 AGORA ele aparece mesmo em celulares fracos
   return box;
 }
-
-
 
 // ===== CONTROLE DE EDIÇÃO =====
 let isEditingMode = false;
@@ -1563,6 +1562,13 @@ function initializeScene() {
   };
   
   engine = new BABYLON.Engine(canvas, true, engineOptions);
+
+  // ===== AJUSTES ADICIONAIS PARA DISPOSITIVOS FRACOS =====
+if (DEVICE_TIER === Quality.LOW) {
+  engine.setHardwareScalingLevel(2);       // Reduz resolução renderizada
+  engine.targetFps = 30;                   // Limita a 30 FPS
+  engine.getCaps().maxTextureSize = 1024;  // Reduz texturas
+}
 
   // Ajustes finos por tier
 if (DEVICE_TIER === Quality.LOW) {
@@ -1746,6 +1752,12 @@ if (DEVICE_TIER === Quality.LOW) {
   let hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
   hemiLight.intensity = 1.8;
   
+  if (DEVICE_TIER === Quality.LOW) {
+  scene.shadowsEnabled = false;
+  scene.environmentTexture = null;
+  if (scene.postProcesses) scene.postProcesses.length = 0;
+  console.log("💡 Modo econômico: sombras e efeitos desativados");
+}
   
   // Chão
   const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 }, scene);
@@ -1790,7 +1802,7 @@ skybox.material = skyMaterial;
   setupKeyboardControls();
   if (!isMobile) setupScrollBlocking();
 
-  
+
   // Iniciar Firebase sync
   iniciarFirebaseSync();
 }
@@ -3503,16 +3515,49 @@ async function toggleVagaStatus(vagaId) {
   }
 }
 
+// ===== CARREGAMENTO DE CARROS EM LOTES (BATCH) =====
+async function carregarCarrosEmLotes(vagas) {
+  const batchSize = DEVICE_TIER === Quality.LOW ? 3 : 10; // poucos carros por vez
+  for (let i = 0; i < vagas.length; i += batchSize) {
+    const lote = vagas.slice(i, i + batchSize);
+    await Promise.all(lote.map(async vaga => {
+      try {
+        if (vaga.ocupada && !vaga.carro) {
+          await carregarCarroSimplificado(vaga);
+        }
+      } catch (e) {
+        console.warn("Falha ao carregar carro da vaga", vaga.numero, e);
+      }
+    }));
+    // pausa pequena pra aliviar CPU/GPU
+    await new Promise(r => setTimeout(r, 150));
+  }
+}
+
+async function carregarCarroSimplificado(vaga) {
+  if (DEVICE_TIER === Quality.LOW) {
+    // 🔹 Cria um "carro" leve (caixa)
+    vaga.impostor = getImpostorMesh();
+    vaga.impostor.position = vaga.mesh.getAbsolutePosition().clone();
+    vaga.impostor.setEnabled(true);
+  } else {
+    // 🔹 Carrega o modelo real
+    const modelo = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+    await BABYLON.SceneLoader.AppendAsync(CAR_BASE_URL, modelo, scene);
+  }
+}
+
+
 // ===== FIREBASE SYNC COM CLEANUP =====
 function iniciarFirebaseSync() {
   // Remove listener anterior se existir
   if (vagasListener) {
     db.ref('vagas').off('value', vagasListener);
   }
-  
+
   vagasListener = async (snapshot) => {
     const data = snapshot.val();
-    
+
     if (!data) {
       // Limpa vagas existentes com dispose adequado
       for (let v of vagas) {
@@ -3530,27 +3575,34 @@ function iniciarFirebaseSync() {
       updateUI();
       return;
     }
-    
+
+    // Calcula próximo número de vaga
     let maxNum = 0;
     Object.keys(data).forEach(id => {
       const num = parseInt(data[id].numero?.replace('VAGA ', '')) || 0;
       if (num > maxNum) maxNum = num;
     });
     nextVagaNumber = maxNum + 1;
-    
-    Object.keys(data).forEach(async (id) => {
+
+    const ids = Object.keys(data);
+
+    // Vamos acumular aqui as vagas que precisam carregar carro
+    const pendentesParaCarro = [];
+
+    const promises = ids.map(async (id) => {
       const vData = data[id];
       let vaga = vagas.find(v => v.id === id);
-      
+
       if (!vaga) {
+        // === CRIAÇÃO DE VAGA NOVA ===
         const mesh = criarVagaContorno(new BABYLON.Vector3(vData.x, vData.y, vData.z));
         mesh.rotation.y = vData.rotY || 0;
-        
+
         if (vData.ocupada && mesh.material) {
           mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
           mesh.material.emissiveColor = new BABYLON.Color3(0.8, 0.2, 0.2).scale(0.3);
         }
-        
+
         const numero = vData.numero || `VAGA ${nextVagaNumber++}`;
         vaga = {
           mesh,
@@ -3561,55 +3613,41 @@ function iniciarFirebaseSync() {
           numero
         };
 
+        // regra especial (14/15)
         const _numCriada = parseInt((numero || '').replace('VAGA ', '')) || 0;
         if ((_numCriada === 14 || _numCriada === 15) && vaga.ocupada) {
           vaga.carModel = 'carpo.glb';
         }
-        
+
         vagas.push(vaga);
-        
+
         if (!vData.numero) {
           db.ref('vagas/' + id + '/numero').set(numero);
         }
-        
+
         adicionarNumeroNaVaga(mesh, numero.replace("VAGA ", ""));
-        
+
+        // 🔹 NÃO carregamos o carro aqui — só marcamos
         if (vaga.ocupada && !vaga.carro) {
-          // Delay escalonado para iOS
-          if (isIOS) {
-            setTimeout(async () => {
-              try {
-                const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-                vaga.carro = carro;
-              } catch (e) {
-                console.error("Erro ao carregar carro:", e);
-              }
-            }, Math.random() * 2000);
-          } else {
-            try {
-              const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-              vaga.carro = carro;
-            } catch (e) {
-              console.error("Erro ao carregar carro:", e);
-            }
-          }
+          pendentesParaCarro.push(vaga);
         }
       } else {
+        // === ATUALIZAÇÃO DE VAGA EXISTENTE ===
         vaga.mesh.position.x = vData.x;
         vaga.mesh.position.y = vData.y;
         vaga.mesh.position.z = vData.z;
         vaga.mesh.rotation.y = vData.rotY || 0;
-        
+
         const wasOccupied = vaga.ocupada;
         vaga.ocupada = vData.ocupada;
         vaga.carModel = vData.carModel || null;
         vaga.numero = vData.numero || vaga.numero || null;
-        
+
         const _numAtual = parseInt((vaga.numero || '').replace('VAGA ', '')) || 0;
         if ((_numAtual === 14 || _numAtual === 15) && vaga.ocupada) {
           vaga.carModel = 'carpo.glb';
         }
-        
+
         if (!isEditingMode || vaga !== vagaSelecionada) {
           if (vaga.ocupada && vaga.mesh.material) {
             vaga.mesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
@@ -3619,45 +3657,62 @@ function iniciarFirebaseSync() {
             vaga.mesh.material.emissiveColor = new BABYLON.Color3(0, 0.2, 0.1);
           }
         }
-        
+
+        // 🔹 Se ficou ocupada e ainda não tem carro, marca para lote
         if (vaga.ocupada && !vaga.carro) {
-          if (isIOS) {
-            setTimeout(async () => {
-              try {
-                const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-                vaga.carro = carro;
-              } catch (e) {
-                console.error("Erro ao carregar carro:", e);
-              }
-            }, Math.random() * 2000);
-          } else {
-            try {
-              const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
-              vaga.carro = carro;
-            } catch (e) {
-              console.error("Erro ao carregar carro:", e);
-            }
-          }
-        } else if (!vaga.ocupada && vaga.carro) {
+          pendentesParaCarro.push(vaga);
+        }
+
+        // 🔹 Se desocupou e tinha carro, limpa
+        if (!vaga.ocupada && vaga.carro) {
           vaga.carro.dispose();
           vaga.carro = null;
         }
-        
+
         if (vaga.mesh._labelTextBlock) {
-          vaga.mesh._labelTextBlock.text = vaga.numero.replace("VAGA ", "");
+          vaga.mesh._labelTextBlock.text = (vaga.numero || '').replace("VAGA ", "");
         }
-        
+
         if (!vData.numero && vaga.numero) {
           db.ref('vagas/' + id + '/numero').set(vaga.numero);
         }
       }
     });
-    
+
+    // Garante que todas as vagas foram criadas/atualizadas
+    await Promise.all(promises);
+
+// 🔸 Agora sim: carregamos os carros em lotes, mas usando a função oficial de normalização
+const listaFinal = pendentesParaCarro.filter(v => v && v.mesh && v.ocupada && !v.carro);
+
+if (listaFinal.length > 0) {
+  const batchSize = DEVICE_TIER === Quality.LOW ? 3 : 10;
+  for (let i = 0; i < listaFinal.length; i += batchSize) {
+    const lote = listaFinal.slice(i, i + batchSize);
+    await Promise.all(lote.map(async vaga => {
+      try {
+        // Usa a função correta que já aplica escala e rotação
+        const carro = await carregarCarroNormalizado(vaga, vaga.carModel);
+        vaga.carro = carro;
+      } catch (e) {
+        console.warn("Erro ao carregar carro em lote:", e);
+      }
+    }));
+
+    // pausa pequena entre os lotes
+    await new Promise(r => setTimeout(r, 150));
+  }
+}
+
+
+    // Atualiza o dashboard
     updateUI();
   };
-  
+
   db.ref('vagas').on('value', vagasListener);
 }
+
+
 
 // ===== LIMPEZA COMPLETA PARA iOS =====
 window.addEventListener('beforeunload', () => {
@@ -3900,6 +3955,6 @@ window.setIsometricView = setIsometricView;
 window.toggleCameraLock = toggleCameraLock;
 
 </script>
-<div id="projectVersion">v29</div>
+<div id="projectVersion">v31</div>
 </body>
 </html>
